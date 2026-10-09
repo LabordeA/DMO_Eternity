@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DMO Build Planner — Digimon Masters Online</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◆</span>
+      <div>
+        <h1>DMO Build Planner</h1>
+        <small>Digimon Masters Online · GDMO / KDMO / LADMO</small>
+      </div>
+    </div>
+    <div class="build-controls">
+      <input id="buildName" type="text" placeholder="Nombre del build" />
+      <button id="btnSave" class="primary">Guardar</button>
+      <select id="savedBuilds"><option value="">— Builds guardados —</option></select>
+      <button id="btnLoad">Cargar</button>
+      <button id="btnShare" title="Copiar link con el build">Compartir</button>
+      <details class="menu">
+        <summary title="Más opciones">⋯</summary>
+        <div class="menu-pop">
+          <label class="field"><span>Servidor</span><select id="server"></select></label>
+          <button id="btnNew">Nuevo build</button>
+          <button id="btnDelete" class="danger">Borrar build guardado</button>
+          <button id="btnExport">Exportar builds (JSON)</button>
+          <label class="btn-like">Importar builds (JSON)<input id="fileImport" type="file" accept=".json" hidden /></label>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="editor">
+      <nav class="tabs" id="tabs">
+        <button data-tab="digimon" class="active">Digimon</button>
+        <button data-tab="clone">Clon</button>
+        <button data-tab="seals">Sellos</button>
+        <button data-tab="equip">Equipo</button>
+        <button data-tab="jewelry">Joyería</button>
+        <button data-tab="extras">Extras</button>
+        <button data-tab="compare">Comparar</button>
+        <button data-tab="info">Info</button>
+      </nav>
+
+      <div class="tab-panel active" id="tab-digimon"></div>
+      <div class="tab-panel" id="tab-clone"></div>
+      <div class="tab-panel" id="tab-seals"></div>
+      <div class="tab-panel" id="tab-equip"></div>
+      <div class="tab-panel" id="tab-jewelry"></div>
+      <div class="tab-panel" id="tab-extras"></div>
+      <div class="tab-panel" id="tab-compare"></div>
+      <div class="tab-panel" id="tab-info"></div>
+    </section>
+
+    <aside class="summary" id="summary"></aside>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Datos (editables) -->
+  <script src="data/core.js"></script>
+  <script src="data/digimon.js"></script>
+  <script src="data/digimon_u.js"></script>
+  <script src="data/seals.js"></script>
+  <script src="data/equipment.js"></script>
+  <script src="data/jewelry.js"></script>
+  <script src="data/clones.js"></script>
+  <script src="data/extras.js"></script>
+  <!-- Lógica -->
+  <script src="js/calc.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
