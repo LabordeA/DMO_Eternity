@@ -514,27 +514,32 @@
       if (j.id) {
         const level = j.level || item?.levels;
         const ranges = item ? J.rangesFor(item, level) : null;
-        const nLines = item ? J.linesFor(item, level) : (j.lines || []).length;
+        const nLines = item ? J.linesFor(item) : (j.lines || []).length;
         const dpMax = item?.dpMax || J.dp.max;
         j.lines = j.lines || [];
         while (j.lines.length < nLines) j.lines.push({ stat: '', v: 0 });
         if (j.lines.length > nLines) j.lines.length = nLines;
-        const pool = ranges ? Object.keys(ranges) : statKeysAll;
+        // Pool de opciones de cada línea (los ítems de dungeon tienen un pool distinto por línea)
+        const poolOf = (i) => (item ? J.linePool(item, level, i) : null);
+        const perLine = !!(item && (item.linePools || item.lineGroups));
         body.appendChild(h('div', { class: 'row', style: { marginBottom: '.4rem' } },
           item?.levels ? field(item.levelBase === 0 ? 'Mejora' : 'Nivel', select(Array.from({ length: item.levels }, (_, i) => ({ value: i + 1, label: item.levelBase === 0 ? '+' + i : 'Lv' + (i + 1) })), level, (v) => set((b) => { b.jewelry[slot.key].level = Number(v); }, true))) : null,
           field(`Digitary Power % (máx ${dpMax})`, num(j.dp ?? 100, (v) => set((b) => { b.jewelry[slot.key].dp = Math.max(J.dp.min, Math.min(v, dpMax)); }, true), { style: { width: '5rem' } })),
           h('button', { class: 'small', onclick: () => set((b) => { b.jewelry[slot.key].dp = dpMax; }, true) }, 'DP máx'),
-          ranges ? h('button', { class: 'small', onclick: () => set((b) => { b.jewelry[slot.key].lines.forEach((l) => { if (l.stat && ranges[l.stat]) l.v = ranges[l.stat][1]; }); }, true) }, 'Valores al máximo') : null));
+          ranges ? h('button', { class: 'small', onclick: () => set((b) => { b.jewelry[slot.key].lines.forEach((l, i) => { const r = poolOf(i)?.[l.stat]; if (r) l.v = r[1]; }); }, true) }, 'Valores al máximo') : null));
         const counts = {};
         j.lines.forEach((l) => { if (l.stat) counts[l.stat] = (counts[l.stat] || 0) + 1; });
         j.lines.forEach((l, i) => {
-          const rng = ranges?.[l.stat];
-          const lim = J.dupLimits[slot.key]?.[l.stat];
+          const lp = poolOf(i);
+          const rng = lp?.[l.stat];
+          const lim = perLine ? null : J.dupLimits[slot.key]?.[l.stat];
           const over = lim && counts[l.stat] > lim;
+          const keys = lp ? Object.keys(lp) : statKeysAll;
+          if (l.stat && lp && !lp[l.stat]) keys.push(l.stat); // conserva un valor viejo que ya no está en el pool
           const fixed = item?.fixed?.[i];
           body.appendChild(h('div', { class: 'mod-line' },
             fixed ? h('span', { style: { minWidth: '7rem' } }, statLabel(fixed === 'AS' ? 'ASP' : fixed))
-              : select([{ value: '', label: '— línea —' }, ...pool.map((k) => ({ value: k, label: statLabel(k === 'AS' ? 'ASP' : k) }))], l.stat, (v) => set((b) => { const L = b.jewelry[slot.key].lines[i]; L.stat = v; L.v = ranges?.[v]?.[1] ?? 0; }, true)),
+              : select([{ value: '', label: perLine ? `— línea ${i + 1} —` : '— línea —' }, ...keys.map((k) => ({ value: k, label: statLabel(k === 'AS' ? 'ASP' : k) }))], l.stat, (v) => set((b) => { const L = b.jewelry[slot.key].lines[i]; L.stat = v; L.v = lp?.[v]?.[1] ?? 0; }, true)),
             num(l.v, (v) => set((b) => { b.jewelry[slot.key].lines[i].v = v; })),
             rng ? h('small', { class: 'muted' }, `${rng[0] ?? '?'}–${rng[1]}`) : null,
             l.stat && l.v ? h('small', null, `→ ${fmt(l.v * (j.dp ?? 100) / 100, 2)}`) : null,
@@ -553,7 +558,7 @@
           const lines = [];
           if (it) {
             const rg = J.rangesFor(it, it.levels);
-            const n = J.linesFor(it, it.levels);
+            const n = J.linesFor(it);
             for (let i = 0; i < n; i++) { const st = it.fixed?.[i] || ''; lines.push({ stat: st, v: st ? rg[st][1] : 0 }); }
           } else for (let i = 0; i < 4; i++) lines.push({ stat: '', v: 0 });
           b.jewelry[slot.key] = { id: v, dp: 100, level: it?.levels, lines };
@@ -561,8 +566,10 @@
         body);
     });
     return h('div', null,
-      help(h('p', null, 'Valor final de cada línea = valor × Digitary Power / 100 (DP 95%–200%; Imperial 150%, Underworld 100%). ',
-        'Los rangos mostrados son a 100% DP. Option Change reroll todas las líneas; Number Change sólo el valor de una.'),
+      help(h('p', null, 'Joyería de endgame: Zero Unit y Digital Hazard (vienen al máximo), Miracle [Special], Shining Arena Ring (Arena [Hard]) y la de dungeons: ',
+        "Kaiser's Base (Kindness Earring), Dark Web / Armagemon (Miracle Necklace), Nightmare / VenomMyotismon (Ring of Hope), Marketplace (Vital Breath, Ghost Keyring), Barbamon (Keyring of Greed) y Belphemon (Sloth Bracelet)."),
+        h('p', null, 'Valor final de cada línea = valor × Digitary Power / 100 (DP 95%–200%). Los rangos mostrados son a 100% DP. ',
+          'En la joyería de dungeon cada línea tiene sus propias opciones (según la tabla oficial). Option Change reroll todas las líneas; Number Change sólo el valor de una.'),
         h('p', null, 'Líneas recomendadas: ' + J.slots.map((x) => `${x.label}: ${J.recommended[x.key]}`).join(' · '))),
       h('div', { class: 'grid-cards' }, cards, equipCard(DMO.equipment.slots.find((x) => x.key === 'keyring'))));
   }

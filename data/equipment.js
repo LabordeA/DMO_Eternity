@@ -218,18 +218,16 @@ window.DMO = window.DMO || {};
   add({ id: 'aura_full', slot: 'digiaura', name: 'FullMoon DigiAura', stats: { AT: 200, HP: 800 }, src: 'WIKI' });
 
   // ───────── Key Rings ─────────
-  add({ id: 'kr_ghost', slot: 'keyring', name: 'Ghost Keyring [familia] +0..+15', enhMax: 15, familyLock: true,
+  add({ id: 'kr_ghost', slot: 'keyring', name: 'Ghost Keyring · Marketplace', enhMax: 15, familyLock: true,
     enh: { HT: [100, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500, 550, 600, 650, 750, 1000],
       HP: [0, 0, 0, 0, 0, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 5000],
       SKP: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 32, 35, 37, 40, 50] }, src: 'OFFICIAL 21.01.2025' });
   // Keyring of Greed (Santuario de Barbamon, oficial 26.08.2026). Sin restricción de familia, +0..+10.
-  add({ id: 'kr_greed', slot: 'keyring', name: 'Keyring of Greed (Barbamon) +0..+10', enhMax: 10,
+  add({ id: 'kr_greed', slot: 'keyring', name: 'Keyring of Greed · Barbamon', enhMax: 10,
     enh: { HP: [3000, 3600, 3600, 4800, 4800, 5600, 5600, 6400, 7500, 8700, 10000],
       HT: [0, 0, 700, 1000, 1000, 1400, 1400, 1800, 2300, 2900, 3600],
       AT: [0, 0, 0, 0, 250, 250, 450, 450, 750, 1100, 1500],
       SKP: [30, 35, 40, 50, 50, 55, 55, 58, 58, 60, 60] }, src: 'OFFICIAL 26.08.2026' });
-  add({ id: 'kr_spiral_fam', slot: 'keyring', name: 'Spiral Key Ring Max (WG/DS/JT/ME)', range: { HP: [388, 1940], AT: [42, 210], SKP: [2, 10] }, familyLock: true, src: 'WIKI' });
-  add({ id: 'kr_spiral_tamer', slot: 'keyring', name: 'Spiral Key Ring Max (Tamer) [legacy/Tamer]', range: { HP: [775, 1550], AT: [111, 222], DE: [78, 156] }, tamerStat: true, src: 'WIKI' });
 
   // ───────── Sets ─────────
   const frontier4 = { pieces: 4, stats: { HP: 4500, HT: 1000, FD: 25 }, text: 'Daño recibido -30%, daño de skill recibido -20%' };

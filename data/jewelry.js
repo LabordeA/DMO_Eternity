@@ -1,122 +1,74 @@
-/* Joyería / Accesorios. Fuente: dmowiki Clothing (Accessories), jyj9655/dmo-upgrade-helper (mínimos KDMO),
-   DigitalWorldOnline emu (fórmula). Valores máximos a 100% de Digitary Power.
-   Valor final de cada línea = valor × DP / 100. DP: base 100, mín 95, máx 200 (Imperial 150, Underworld 100).
-   opts: { STAT: [min, max] }  (min null = desconocido)
-   lvl:  { STAT: [máx nivel1, nivel2, ...] } para accesorios con niveles (Fanglongmon, Holy Beasts, Miracle)
-   lvlR: { STAT: [[mín,máx] nivel1, ...] }   rango por nivel (Sloth Bracelet). levelBase 0 = niveles +0..+N
-   Stats: HP/DS/AT/DE/HT/SK planos · CT/EV/BL/ATT/CD/AS en % */
+/* Joyería / Accesorios. Sólo la joyería de endgame: Zero Unit, Digital Hazard, Miracle [Special]
+   y la joyería de dungeons (Kaiser's Base, Dark Web, Nightmare, Marketplace, Barbamon, Belphemon).
+   Fuentes: notas oficiales GameKing (valores a 100% de Digitary Power), dmowiki Clothing, jyj9655/dmo-upgrade-helper (mínimos).
+   Valor final de cada línea = valor × DP / 100. DP: base 100, mín 95, máx 200.
+
+   opts:      { STAT: [mín, máx] }                     mismo pool para todas las líneas
+   linePools: [ { STAT: [mín, máx] }, ... ]            pool propio de cada línea (tablas oficiales: cada bloque = una línea)
+   lvlR:      { STAT: [[mín,máx] por nivel] }           rango por nivel de mejora (levelBase 0 = +0..+N)
+   Stats: HP/DS/AT/DE/HT/SK planos · CT/EV/BL/ATT/CD/AS/FD en % · HPP/DSP/DEP/ATP = % del stat base */
 window.DMO = window.DMO || {};
 (function () {
-  // Interpola un rango [a,b] en n niveles (cuando la wiki sólo da extremos) — marcado como estimado
-  const lin = (a, b, n) => Array.from({ length: n }, (_, i) => Math.round((a + (b - a) * (n === 1 ? 1 : i / (n - 1))) * 10) / 10);
+  // ── Pools base (dmowiki, máximos a 100% DP; mínimos de la herramienta KR) ──
+  const RING = { HP: [150, 800], DS: [150, 800], AT: [50, 300], DE: [7, 25], CT: [1, 5], SK: [50, 400], ATT: [1, 5] };
+  const NECK = { HP: [150, 800], DS: [150, 800], AT: [20, 200], DE: [5, 50], CT: [1, 5], SK: [30, 250], ATT: [1, 5], CD: [1, 20], AS: [1, 15] };
+  const EAR = { HP: [150, 800], DS: [150, 800], DE: [10, 100], CT: [1, 7], SK: [50, 300], ATT: [1, 7], CD: [1, 20], HT: [100, 500], EV: [1, 7], BL: [1, 6] };
+  const fixed = (o) => Object.fromEntries(Object.entries(o).map(([k, [, max]]) => [k, [max, max]]));
+
+  // Vital Breath / Sloth: 2 líneas planas + 1 línea de % (tabla oficial de Vital Breath)
+  const VITAL_FLAT = { AT: [1000, 1500], DE: [300, 500], HP: [2000, 3000], DS: [1500, 2500], SK: [2000, 2500], CT: [5, 10], CD: [25, 40], EV: [10, 15], HT: [800, 1200] };
+  const VITAL_PCT = { DEP: [15, 20], DSP: [5, 10], HPP: [5, 10], SKP: [3, 7], FD: [1, 5] };
 
   const items = [
     // ───────── ANILLOS ─────────
-    { id: 'ring_generic3', slot: 'ring', name: 'Anillo genérico 3 opciones (Arcane, World Cup, Growth)', lines: 3,
-      opts: { HP: [150, 500], DS: [150, 500], AT: [50, 150], DE: [7, 15], CT: [1, 4], SK: [50, 200], ATT: [1, 2] } },
-    { id: 'ring_std', slot: 'ring', name: 'Anillo estándar 4 op. (Quad-core, Holy Beast sellado, Boundless, Miracle Lv10)', lines: 4,
-      opts: { HP: [150, 800], DS: [150, 800], AT: [50, 300], DE: [7, 25], CT: [1, 5], SK: [50, 400], ATT: [1, 5] } },
-    { id: 'ring_std5', slot: 'ring', name: 'Anillo 5 op. (Digital Hazard / Miracle Special)', lines: 5,
-      opts: { HP: [150, 800], DS: [150, 800], AT: [50, 300], DE: [7, 25], CT: [1, 5], SK: [50, 400], ATT: [1, 5] } },
-    { id: 'ring_imperial', slot: 'ring', name: 'Imperial Ring (AT, AT, CT, SK)', lines: 4, dpMax: 150,
-      fixed: ['AT', 'AT', 'CT', 'SK'], opts: { AT: [null, 450], CT: [null, 7], SK: [null, 500] } },
-    { id: 'ring_underworld', slot: 'ring', name: 'Underworld Ring (AT, AT, CT, SK)', lines: 4, dpMax: 100,
-      fixed: ['AT', 'AT', 'CT', 'SK'], opts: { AT: [null, 450], CT: [null, 7], SK: [null, 500] } },
-    { id: 'ring_fanglong', slot: 'ring', name: "Fanglongmon's Ancient Ring", lines: 4, levels: 10,
-      lvl: { HP: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960], DS: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960],
-        AT: [240, 249, 258, 267, 276, 285, 300, 321, 342, 360], DE: [20, 21, 22, 23, 24, 25, 27, 29, 30, 30],
-        SK: [320, 332, 344, 356, 368, 380, 400, 428, 456, 480], CT: lin(4, 6, 10), ATT: lin(4, 6, 10) }, estStats: ['CT', 'ATT'] },
-    { id: 'ring_fhb', slot: 'ring', name: 'Ring of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [816, 832, 848, 864, 880], DS: [816, 832, 848, 864, 880], AT: [306, 312, 318, 324, 330], DE: [26, 26, 27, 27, 28],
-        SK: [408, 416, 424, 432, 440], CT: lin(5, 6, 5), ATT: lin(5, 6, 5) }, estStats: ['CT', 'ATT'] },
-    { id: 'ring_fhb_rad', slot: 'ring', name: 'Radiant Ring of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [896, 920, 960, 1000, 1040], DS: [896, 920, 960, 1000, 1040], AT: [336, 345, 360, 375, 390], DE: [28, 29, 30, 32, 33],
-        SK: [448, 460, 480, 500, 520], CT: lin(6, 7, 5), ATT: lin(6, 7, 5) }, estStats: ['CT', 'ATT'] },
-    { id: 'ring_zero', slot: 'ring', name: 'Zero Unit Ring (máx fijo)', lines: 5, fixedMax: true,
+    { id: 'ring_zero', slot: 'ring', name: 'Zero Unit Ring', lines: 5,
       opts: { HP: [960, 960], DS: [960, 960], AT: [360, 360], DE: [30, 30], CT: [6, 6], SK: [480, 480], ATT: [6, 6] } },
-    { id: 'ring_arena', slot: 'ring', name: 'Shining Arena Ring', lines: 5,
+    { id: 'ring_hazard', slot: 'ring', name: 'Digital Hazard Ring', lines: 5, opts: fixed(RING) },
+    { id: 'ring_miracle_sp', slot: 'ring', name: 'Miracle Ring [Special]', lines: 5, opts: RING },
+    // Shining Arena Ring (Arena [Hard], dmowiki; la tabla oficial de 09.07.2024 es una imagen)
+    { id: 'ring_arena', slot: 'ring', name: 'Shining Arena Ring · Arena', lines: 5, src: 'WIKI',
       opts: { HP: [200, 960], DS: [200, 960], AT: [100, 360], DE: [10, 30], CT: [1, 6], SK: [100, 480], ATT: [1, 6], CD: [1, 20], HT: [100, 500] } },
+    { id: 'ring_hope', slot: 'ring', name: 'Ring of Hope · Nightmare', lines: 2, src: 'OFFICIAL 26.11.2025',
+      linePools: Array(2).fill({ HP: [750, 1500], DS: [750, 1500], DE: [50, 100], AT: [500, 1000], SK: [1000, 2000], DEP: [7.5, 15], DSP: [5, 10],
+        EV: [1, 5], BL: [1, 5], CT: [2, 10], ATT: [2, 10], CD: [10, 20], HT: [1000, 2000] }) },
 
     // ───────── COLLARES ─────────
-    { id: 'neck_generic3', slot: 'necklace', name: 'Collar genérico 3 opciones (Arcane, Sealed Datamon, Growth)', lines: 3,
-      opts: { HP: [150, 500], DS: [150, 500], AT: [20, 100], DE: [5, 25], CT: [1, 2], SK: [30, 150], ATT: [1, 2], CD: [1, 5], AS: [1, 4] } },
-    { id: 'neck_std', slot: 'necklace', name: 'Collar estándar 4 op. (Quad-core, Holy Beast, Boundless, Miracle Lv10)', lines: 4,
-      opts: { HP: [150, 800], DS: [150, 800], AT: [20, 200], DE: [5, 50], CT: [1, 5], SK: [30, 250], ATT: [1, 5], CD: [1, 20], AS: [1, 15] } },
-    { id: 'neck_std5', slot: 'necklace', name: 'Collar 5 op. (Digital Hazard / Miracle Special)', lines: 5,
-      opts: { HP: [150, 800], DS: [150, 800], AT: [20, 200], DE: [5, 50], CT: [1, 5], SK: [30, 250], ATT: [1, 5], CD: [1, 20], AS: [1, 15] } },
-    { id: 'neck_imperial', slot: 'necklace', name: 'Imperial Necklace (AT, AS, CT, CD)', lines: 4, dpMax: 150,
-      fixed: ['AT', 'AS', 'CT', 'CD'], opts: { AT: [null, 450], AS: [null, 20], CT: [null, 7], CD: [null, 30] } },
-    { id: 'neck_underworld', slot: 'necklace', name: 'Underworld Necklace (AT, AS, CT, CD)', lines: 4, dpMax: 100,
-      fixed: ['AT', 'AS', 'CT', 'CD'], opts: { AT: [null, 450], AS: [null, 20], CT: [null, 7], CD: [null, 30] }, estStats: ['AS'] },
-    { id: 'neck_fanglong', slot: 'necklace', name: "Fanglongmon's Ancient Necklace", lines: 4, levels: 10,
-      lvl: { HP: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960], DS: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960],
-        AT: [160, 166, 172, 178, 184, 190, 200, 214, 228, 240], DE: [40, 42, 43, 45, 46, 48, 50, 54, 57, 60],
-        CT: [4, 5, 5, 5, 5, 5, 5, 6, 6, 6], SK: [200, 208, 215, 223, 230, 238, 250, 268, 285, 300], ATT: [4, 5, 5, 5, 5, 5, 5, 6, 6, 6],
-        CD: [16, 16.6, 17.2, 17.8, 18.4, 19, 20, 21.4, 22.8, 24], AS: [1, 2, 3, 4, 5, 6, 8, 10, 13, 15] } },
-    { id: 'neck_fhb', slot: 'necklace', name: 'Necklace of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [816, 832, 848, 864, 880], DS: [816, 832, 848, 864, 880], AT: [204, 208, 212, 216, 220], DE: [51, 52, 53, 54, 55],
-        SK: [255, 260, 265, 270, 275], CD: [20.4, 20.8, 21.2, 21.6, 22], AS: [15, 15, 15, 15, 15], CT: lin(5, 6, 5), ATT: lin(5, 6, 5) }, estStats: ['CT', 'ATT'] },
-    { id: 'neck_fhb_rad', slot: 'necklace', name: 'Radiant Necklace of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [896, 920, 960, 1000, 1040], DS: [896, 920, 960, 1000, 1040], AT: [224, 230, 240, 250, 260], DE: [56, 58, 60, 63, 65],
-        SK: [280, 288, 300, 313, 325], CD: [22.4, 23, 24, 25, 26], AS: [15, 15, 15, 15, 15], CT: lin(6, 7, 5), ATT: lin(6, 7, 5) }, estStats: ['CT', 'ATT'] },
-    { id: 'neck_zero', slot: 'necklace', name: 'Zero Unit Necklace (máx fijo)', lines: 5, fixedMax: true,
+    { id: 'neck_zero', slot: 'necklace', name: 'Zero Unit Necklace', lines: 5,
       opts: { HP: [960, 960], DS: [960, 960], AT: [240, 240], DE: [60, 60], CT: [6, 6], SK: [300, 300], ATT: [6, 6], CD: [24, 24], AS: [15, 15] } },
+    { id: 'neck_hazard', slot: 'necklace', name: 'Digital Hazard Necklace', lines: 5, opts: fixed(NECK) },
+    { id: 'neck_miracle_sp', slot: 'necklace', name: 'Miracle Necklace [Special]', lines: 5, opts: NECK },
+    { id: 'neck_radiant_miracle', slot: 'necklace', name: 'Radiant Miracle Necklace · Dark Web', lines: 4, src: 'OFFICIAL 27.05.2025 / 02.09.2026',
+      linePools: [
+        { HP: [600, 1200], DS: [600, 1200], DE: [50, 100], CT: [5, 10], AS: [15, 15], CD: [15, 30], ATT: [1, 8] },
+        { HP: [600, 1200], DS: [600, 1200], DE: [50, 100], CT: [5, 10], AT: [150, 300], SK: [200, 500], ATT: [1, 8] },
+        { HP: [600, 1200], DS: [600, 1200], DE: [50, 100], AT: [150, 300], ATP: [2.5, 5], DEP: [25, 50], HPP: [5, 15], DSP: [25, 50] },
+        { HP: [600, 1200], DS: [600, 1200] },
+      ] },
 
     // ───────── AROS ─────────
-    { id: 'ear_std3', slot: 'earring', name: 'Aro 3 op. (Zhuqiaomon / Baihumon sellados)', lines: 3,
-      opts: { HP: [150, 800], DS: [150, 800], DE: [10, 100], CT: [1, 7], SK: [50, 300], ATT: [1, 7], CD: [1, 20], HT: [100, 500], EV: [1, 7], BL: [1, 6] } },
-    { id: 'ear_std', slot: 'earring', name: 'Aro 4 op. (Qinglongmon, Quad-core, Boundless, Miracle Lv10)', lines: 4,
-      opts: { HP: [150, 800], DS: [150, 800], DE: [10, 100], CT: [1, 7], SK: [50, 300], ATT: [1, 7], CD: [1, 20], HT: [100, 500], EV: [1, 7], BL: [1, 6] } },
-    { id: 'ear_std5', slot: 'earring', name: 'Aro 5 op. (Digital Hazard / Miracle Special)', lines: 5,
-      opts: { HP: [150, 800], DS: [150, 800], DE: [10, 100], CT: [1, 7], SK: [50, 300], ATT: [1, 7], CD: [1, 20], HT: [100, 500], EV: [1, 7], BL: [1, 6] } },
-    { id: 'ear_imperial', slot: 'earring', name: 'Imperial Earrings (CT, CD, HT, SK)', lines: 4, dpMax: 150,
-      fixed: ['CT', 'CD', 'HT', 'SK'], opts: { CT: [null, 7], CD: [null, 30], HT: [null, 700], SK: [null, 500] } },
-    { id: 'ear_nanomon', slot: 'earring', name: "Nanomon's Shiny Earring", lines: 4,
-      opts: { HP: [null, 600], DS: [null, 600], SK: [null, 200], ATT: [null, 5], CD: [null, 10], HT: [null, 300], BL: [null, 5] }, estStats: ['lines'] },
-    { id: 'ear_fanglong', slot: 'earring', name: "Fanglongmon's Ancient Earring", lines: 4, levels: 10,
-      lvl: { HP: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960], DS: [640, 664, 688, 712, 736, 760, 800, 856, 912, 960],
-        DE: [80, 83, 86, 89, 92, 95, 100, 107, 114, 120], CT: [6, 6, 7, 7, 7, 7, 7, 7, 8, 9], SK: [240, 249, 258, 267, 276, 285, 300, 321, 342, 360],
-        ATT: [6, 6, 7, 7, 7, 7, 7, 7, 8, 9], CD: [16, 16.6, 17.2, 17.8, 18.4, 19, 20, 21.4, 22.8, 24],
-        HT: [400, 415, 430, 445, 460, 475, 500, 535, 570, 600], EV: [5, 5, 6, 6, 6, 6, 6, 7, 7, 8], BL: [7, 7, 7, 7, 7, 7, 7, 7, 7, 7] } },
-    { id: 'ear_fhb', slot: 'earring', name: 'Earrings of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [816, 832, 848, 864, 880], DS: [816, 832, 848, 864, 880], DE: [102, 104, 106, 108, 110], SK: [306, 312, 318, 324, 330],
-        CD: [20.4, 20.8, 21.2, 21.6, 22], HT: [510, 520, 530, 540, 550], CT: lin(7, 8, 5), ATT: lin(7, 8, 5), EV: lin(7, 8, 5), BL: lin(6, 7, 5) },
-      estStats: ['DE', 'SK', 'HT', 'CT', 'ATT', 'EV', 'BL'] },
-    { id: 'ear_fhb_rad', slot: 'earring', name: 'Radiant Earrings of Four Holy Beasts', lines: 4, levels: 5,
-      lvl: { HP: [896, 920, 960, 1000, 1040], DS: [896, 920, 960, 1000, 1040], DE: [112, 115, 120, 125, 130], SK: [336, 345, 360, 375, 390],
-        CD: [22.4, 23, 24, 25, 26], HT: [560, 575, 600, 625, 650], CT: lin(8, 10, 5), ATT: lin(8, 10, 5), EV: lin(8, 10, 5), BL: lin(7, 8, 5) },
-      estStats: ['CT', 'ATT', 'EV', 'BL'] },
-    { id: 'ear_zero', slot: 'earring', name: 'Zero Unit Earrings (máx fijo)', lines: 5, fixedMax: true,
+    { id: 'ear_zero', slot: 'earring', name: 'Zero Unit Earrings', lines: 5,
       opts: { HP: [960, 960], DS: [960, 960], DE: [120, 120], CT: [9, 9], SK: [360, 360], ATT: [9, 9], CD: [24, 24], HT: [600, 600], EV: [8, 8], BL: [7, 7] } },
+    { id: 'ear_hazard', slot: 'earring', name: 'Digital Hazard Earring', lines: 5, opts: fixed(EAR) },
+    { id: 'ear_miracle_sp', slot: 'earring', name: 'Miracle Earring [Special]', lines: 5, opts: EAR },
+    { id: 'ear_kindness', slot: 'earring', name: "Kindness Earring · Kaiser's Base", lines: 3, src: 'OFFICIAL 25.03.2025',
+      linePools: [
+        { DE: [100, 200], HP: [750, 1500], DS: [750, 1500], SK: [300, 600], ATT: [6, 12], CT: [6, 12], CD: [10, 30], EV: [1, 10], BL: [1, 10], HT: [500, 1000] },
+        { DE: [100, 200], HP: [750, 1500], DS: [750, 1500], SK: [300, 600], ATT: [6, 12], CD: [10, 30], CT: [6, 12], EV: [1, 10], BL: [1, 10] },
+        { DE: [100, 200], DEP: [15, 30], HPP: [25, 50], SKP: [5, 10] },
+      ] },
 
     // ───────── PULSERAS ─────────
-    { id: 'brace_ancient', slot: 'bracelet', name: 'Fancy Bracelet of Ancient Breath', lines: 3,
-      opts: { HP: [null, 299], DS: [null, 299], DE: [null, 37], CT: [null, 2], SK: [null, 112], CD: [null, 7.47], HT: [null, 187], EV: [null, 2] } },
-    { id: 'brace_knight', slot: 'bracelet', name: "Knight's Bracelet (1 línea)", lines: 1,
-      opts: { HP: [null, 800], DS: [null, 800], DE: [null, 100], CT: [null, 7], SK: [null, 300], CD: [null, 20], HT: [null, 500], EV: [null, 6] } },
-    { id: 'brace_knight_rad', slot: 'bracelet', name: "Radiant Knight's Bracelet (2 líneas)", lines: 2,
-      opts: { HP: [null, 800], DS: [null, 800], DE: [null, 100], CT: [null, 7], SK: [null, 300], CD: [null, 20], HT: [null, 500], EV: [null, 6] } },
-    { id: 'brace_royal', slot: 'bracelet', name: "Royal Knight's Bracelet (3 líneas)", lines: 3,
-      opts: { HP: [null, 800], DS: [null, 800], DE: [null, 100], CT: [null, 7], SK: [null, 300], CD: [null, 20], HT: [null, 500], EV: [null, 6] } },
-    { id: 'brace_royal_rad', slot: 'bracelet', name: "Royal Radiant Knight's Bracelet (4 líneas)", lines: 4,
-      opts: { HP: [null, 800], DS: [null, 800], DE: [null, 100], CT: [null, 7], SK: [null, 300], CD: [null, 20], HT: [null, 500], EV: [null, 6] } },
-    { id: 'brace_xknight', slot: 'bracelet', name: "Royal: X-Knight's Bracelet", lines: 5,
-      opts: { HP: [600, 960], DS: [600, 960], AT: [300, 480], DE: [75, 120], CT: [5, 8], SK: [225, 360], CD: [15, 24], HT: [375, 600], EV: [4, 7] } },
-    { id: 'brace_miracle', slot: 'bracelet', name: 'Miracle Bracelet', levels: 10, linesPerLevel: [3, 3, 4, 4, 4, 5, 5, 5, 5, 5],
-      lvl: { HP: [720, 768, 816, 864, 912, 960, 1008, 1056, 1104, 1152], DS: [720, 768, 816, 864, 912, 960, 1008, 1056, 1104, 1152],
-        AT: [360, 384, 408, 432, 456, 480, 504, 528, 552, 576], DE: [90, 96, 102, 108, 114, 120, 126, 132, 138, 144],
-        SK: [270, 288, 306, 324, 342, 360, 378, 396, 414, 432], CD: [18, 19.2, 20.4, 21.6, 22.8, 24, 25.2, 26.4, 27.6, 28.8],
-        HT: [450, 480, 510, 540, 570, 600, 630, 660, 690, 720], CT: lin(6, 10, 10), EV: lin(5, 9, 10) }, estStats: ['CT', 'EV'] },
+    { id: 'brace_zero', slot: 'bracelet', name: 'Zero Unit Bracelet', lines: 5,
+      opts: { HP: [1440, 1440], DS: [1440, 1440], AT: [720, 720], DE: [180, 180], CT: [12, 12], SK: [540, 540], CD: [36, 36], HT: [900, 900], EV: [10, 10] } },
     { id: 'brace_miracle_sp', slot: 'bracelet', name: 'Miracle Bracelet [Special]', lines: 5,
       opts: { HP: [600, 1200], DS: [600, 1200], AT: [300, 600], DE: [75, 150], CT: [5, 10], SK: [225, 450], CD: [15, 30], HT: [375, 750], EV: [4, 9] } },
-    { id: 'brace_zero', slot: 'bracelet', name: 'Zero Unit Bracelet (máx fijo)', lines: 5, fixedMax: true,
-      opts: { HP: [1440, 1440], DS: [1440, 1440], AT: [720, 720], DE: [180, 180], CT: [12, 12], SK: [540, 540], CD: [36, 36], HT: [900, 900], EV: [10, 10] } },
-    // Vital Breath Digivice -V- (pulsera, dungeon Marketplace, oficial 21.01.2025). Valores a 100% DP. Nº de líneas no publicado.
-    { id: 'brace_vital', slot: 'bracelet', name: 'Vital Breath Digivice -V-', lines: 5, estStats: ['nº de líneas'],
-      opts: { AT: [1000, 1500], DE: [300, 500], HP: [2000, 3000], DS: [1500, 2500], SK: [2000, 2500], CT: [5, 10], CD: [25, 40], EV: [10, 15], HT: [800, 1200],
-        DEP: [15, 20], DSP: [5, 10], HPP: [5, 10], SKP: [3, 7], FD: [1, 5] } },
-    // Sloth Bracelet (Santuario de Belphemon, oficial 22.09.2026). Mejora +0..+10, rango [mín,máx] por nivel.
-    { id: 'brace_sloth', slot: 'bracelet', name: 'Sloth Bracelet (Belphemon)', lines: 5, levels: 11, levelBase: 0, estStats: ['nº de líneas'],
+    { id: 'brace_vital', slot: 'bracelet', name: 'Vital Breath -V- · Marketplace', lines: 3, src: 'OFFICIAL 21.01.2025',
+      linePools: [VITAL_FLAT, VITAL_FLAT, VITAL_PCT] },
+    // Sloth Bracelet (Santuario de Belphemon, oficial 22.09.2026). Mejora +0..+10. Mismas 14 opciones que Vital Breath
+    // (se fabrica a partir de ella): se asume la misma estructura de 2 líneas planas + 1 de %.
+    { id: 'brace_sloth', slot: 'bracelet', name: 'Sloth Bracelet · Belphemon', lines: 3, levels: 11, levelBase: 0, src: 'OFFICIAL 22.09.2026',
+      estStats: ['estructura de líneas (asumida igual a Vital Breath)'],
+      lineGroups: [['AT', 'DE', 'HP', 'DS', 'SK', 'CT', 'CD', 'EV', 'HT'], ['AT', 'DE', 'HP', 'DS', 'SK', 'CT', 'CD', 'EV', 'HT'], ['DEP', 'DSP', 'HPP', 'SKP', 'FD']],
       lvlR: {
         AT: [[760, 1140], [800, 1200], [840, 1260], [880, 1320], [920, 1380], [960, 1440], [1000, 1500], [1080, 1620], [1150, 1725], [1230, 1845], [1310, 1965]],
         DE: [[230, 380], [240, 400], [250, 420], [265, 440], [275, 460], [290, 480], [300, 500], [325, 540], [345, 575], [370, 615], [395, 655]],
@@ -143,7 +95,7 @@ window.DMO = window.DMO || {};
       { key: 'bracelet', label: 'Pulsera' },
     ],
     dp: { def: 100, min: 95, max: 200 },
-    // Máximo de líneas repetidas por stat en cada slot (dmowiki)
+    // Máximo de líneas repetidas por stat (dmowiki). No aplica a los ítems con pool por línea.
     dupLimits: {
       ring: { HP: 3, DS: 3, AT: 2, DE: 2, CT: 2, SK: 2, ATT: 2 },
       necklace: { HP: 3, DS: 3, AT: 1, DE: 2, CT: 2, SK: 1, ATT: 2, CD: 1, AS: 1 },
@@ -159,17 +111,25 @@ window.DMO = window.DMO || {};
     items,
   };
 
-  // Devuelve {stat:[min,max]} para un ítem a cierto nivel
+  const levelIdx = (item, level) => Math.max(0, Math.min((level || item.levels) - 1, item.levels - 1));
+
+  // Pool de una línea concreta: {stat:[mín,máx]}
+  DMO.jewelry.linePool = function (item, level, line) {
+    if (item.linePools) return item.linePools[line] || item.linePools[item.linePools.length - 1];
+    const all = DMO.jewelry.rangesFor(item, level);
+    if (item.lineGroups) {
+      const g = item.lineGroups[line] || item.lineGroups[item.lineGroups.length - 1];
+      return Object.fromEntries(g.filter((k) => all[k]).map((k) => [k, all[k]]));
+    }
+    return all;
+  };
+  // Todas las opciones posibles del ítem (unión de líneas) a cierto nivel
   DMO.jewelry.rangesFor = function (item, level) {
     if (item.opts) return item.opts;
     const out = {};
-    const i = Math.max(0, Math.min((level || item.levels) - 1, item.levels - 1));
-    if (item.lvlR) { for (const [k, arr] of Object.entries(item.lvlR)) out[k] = arr[i]; return out; }
-    for (const [k, arr] of Object.entries(item.lvl)) out[k] = [null, arr[i]];
+    if (item.lvlR) { const i = levelIdx(item, level); for (const [k, arr] of Object.entries(item.lvlR)) out[k] = arr[i]; return out; }
+    for (const pool of item.linePools || []) for (const [k, r] of Object.entries(pool)) if (!out[k] || r[1] > out[k][1]) out[k] = r;
     return out;
   };
-  DMO.jewelry.linesFor = function (item, level) {
-    if (item.linesPerLevel) return item.linesPerLevel[Math.max(0, (level || item.levels) - 1)];
-    return item.lines;
-  };
+  DMO.jewelry.linesFor = (item) => item.lines;
 })();

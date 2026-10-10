@@ -21,7 +21,7 @@ Después entrá a http://localhost:8765.
 | Clon | AT / CT / BL / EV / HP de Lv0 a Lv15 (clon perfecto) o tu % real |
 | Sellos | 582 sellos con sus 6 tiers (Normal → Master), búsqueda, filtros y carga masiva |
 | Equipo | Sets Kaiser (Yolei / T.K. / Davis), Frontier (5 elementos) y Four Holy Beasts; ropa de eventos; costumes (Advanced y con opción HP / AT / SCD); ID cards, goggles, XAI, auras; digivices y chipsets R1–R20 |
-| Joyería | Anillos, collares, aros, pulseras (incluye Sloth Bracelet y Vital Breath) y Key Ring (incluye Keyring of Greed), con rangos, niveles y Digitary Power |
+| Joyería | Sólo endgame: Zero Unit, Digital Hazard, Miracle [Special], Shining Arena Ring y joyería de dungeons — Kindness Earring (Kaiser's Base), Radiant Miracle Necklace (Dark Web), Ring of Hope (Nightmare), Vital Breath y Ghost Keyring (Marketplace), Keyring of Greed (Barbamon), Sloth Bracelet (Belphemon). Cada línea con sus opciones oficiales y Digitary Power |
 | Extras | Tamer (pasivas + FS%), 31 decks, 29 títulos (incluye los logros 2025-2026), buffs, procs, modificadores custom y objetivo del daño |
 | Comparar | Dos builds lado a lado con diferencias |
 | Info | Fórmulas, ventajas configurables y fuentes |
