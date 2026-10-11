@@ -179,10 +179,10 @@
     // 3) Sellos
     let sealCount = 0;
     const sealTotals = {};
-    const manualSeals = build.sealStats != null;
+    const manualSeals = build.sealsMode === 'manual' || (build.sealsMode !== 'individual' && build.sealStats != null);
     if (manualSeals) {
       for (const k of ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL']) {
-        const v = Number(build.sealStats[k]);
+        const v = Number(build.sealStats?.[k]);
         if (Number.isFinite(v) && v > 0) sealTotals[k] = v;
       }
     }
