@@ -211,3 +211,12 @@ details.menu[open] > summary { border-color: var(--accent2); }
 .req-table th.req-cur, .req-table td.req-cur { background: rgba(63,180,255,.07); }
 .req-ok { color: var(--good); font-weight: 600; }
 .req-no { color: var(--bad); font-weight: 600; }
+
+/* Ventana de aportes de sellos */
+.seal-dialog { width: min(36rem, calc(100% - 2rem)); max-height: 90vh; overflow: auto;
+  background: var(--bg2); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.25rem; }
+.seal-dialog::backdrop { background: rgba(0,0,0,.65); }
+.seal-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.seal-inputs input { width: 100%; }
+@media (max-width: 400px) { .seal-inputs { grid-template-columns: 1fr; } }

@@ -20,6 +20,7 @@
       digimon: { name: 'Omegamon - Merciful Mode', level: 170, size: 140, type: null, baseOverride: null },
       clone: { AT: { lv: 15, pct: null }, CT: { lv: 15, pct: null }, BL: { lv: 15, pct: null }, EV: { lv: 0, pct: null }, HP: { lv: 0, pct: null } },
       seals: {},
+      sealStats: null,
       equip: {},
       digivice: { id: 'dv_none', opts: [] },
       chips: [],
@@ -178,13 +179,20 @@
     // 3) Sellos
     let sealCount = 0;
     const sealTotals = {};
-    for (const [name, count] of Object.entries(build.seals || {})) {
+    const manualSeals = build.sealStats != null;
+    if (manualSeals) {
+      for (const k of ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL']) {
+        const v = Number(build.sealStats[k]);
+        if (Number.isFinite(v) && v > 0) sealTotals[k] = v;
+      }
+    }
+    for (const [name, count] of Object.entries(manualSeals ? {} : (build.seals || {}))) {
       const s = DMO.seals.list.find((x) => x.n === name);
       if (!s) continue;
       const v = Calc.sealValue(s, count);
       if (v) { sealTotals[s.s] = (sealTotals[s.s] || 0) + v; sealCount++; }
     }
-    for (const [k, v] of Object.entries(sealTotals)) add(k, Math.round(v * 100) / 100, `Sellos (${sealCount})`, 'base');
+    for (const [k, v] of Object.entries(sealTotals)) add(k, Math.round(v * 100) / 100, manualSeals ? 'Sellos (aporte manual)' : `Sellos (${sealCount})`, 'base');
     res.sealTotals = sealTotals; res.sealCount = sealCount;
 
     // Título

@@ -303,73 +303,52 @@
 
   // ───────────────────────── Tab: Sellos ─────────────────────────
   function tabSeals() {
-    const S = DMO.seals;
-    const totalsEl = h('div', { class: 'row' });
-    const tbody = h('tbody');
     const stats = ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL'];
-
-    const filtered = () => {
-      const q = ui.sq.toLowerCase();
-      return S.list.filter((s) => (!q || s.n.toLowerCase().includes(q) || (s.kr || '').includes(q)) && (!ui.sStat || s.s === ui.sStat) && (!ui.sOwned || build.seals[s.n] > 0));
+    const pct = (k) => DMO.seals.pctStats.includes(k);
+    const openEditor = () => {
+      const inputs = {};
+      const dialog = h('dialog', { class: 'seal-dialog', 'aria-labelledby': 'seal-dialog-title' });
+      const form = h('form', { onsubmit: (e) => {
+        e.preventDefault();
+        if (!form.reportValidity()) return;
+        const values = {};
+        for (const k of stats) {
+          const v = inputs[k].value === '' ? 0 : Number(inputs[k].value);
+          if (!Number.isFinite(v) || v < 0) return;
+          values[k] = v;
+        }
+        build.sealStats = values;
+        dialog.close();
+        update(true);
+        toast('Aportes de sellos guardados');
+      } },
+        h('h2', { id: 'seal-dialog-title' }, 'Aporte total de sellos'),
+        h('p', { class: 'muted small' }, 'Ingresá el aporte total por stat. Vacío equivale a 0. CT, EV y BL son puntos porcentuales.'),
+        h('div', { class: 'seal-inputs' }, stats.map((k) => {
+          inputs[k] = num(result.sealTotals?.[k] || 0, () => {}, {
+            min: 0, step: pct(k) ? '0.01' : '1', 'aria-label': 'Aporte de sellos ' + k
+          });
+          return field(k + (pct(k) ? ' (%)' : ''), inputs[k]);
+        })),
+        h('div', { class: 'row' },
+          h('button', { type: 'submit' }, 'Guardar'),
+          h('button', { type: 'button', onclick: () => dialog.close() }, 'Cancelar'))
+      );
+      dialog.appendChild(form);
+      dialog.addEventListener('close', () => dialog.remove(), { once: true });
+      document.body.appendChild(dialog);
+      dialog.showModal();
+      inputs.AT.focus();
+      inputs.AT.select();
     };
-    const fillTotals = () => {
-      clear(totalsEl);
-      for (const k of stats) {
-        const v = result.sealTotals?.[k] || 0;
-        const max = S.list.filter((s) => s.s === k).reduce((a, s) => a + s.v[5], 0);
-        totalsEl.appendChild(h('div', { class: 'card', style: { padding: '.4rem .6rem', minWidth: '7.5rem' } },
-          h('div', { class: 'muted' }, k), h('b', null, fmt(v, 2) + (S.pctStats.includes(k) ? '%' : '')), h('div', { class: 'muted', style: { fontSize: '.75rem' } }, 'máx ' + fmt(max, 1))));
-      }
-    };
-    const fillRows = () => {
-      clear(tbody);
-      for (const s of filtered()) {
-        const cnt = build.seals[s.n] || 0;
-        const tier = Calc.sealTier(s, cnt);
-        const th = S.thresholdTables[s.t];
-        const valEl = h('td', { class: 'num' });
-        const showVal = (c) => { const v = Calc.sealValue(s, c); valEl.textContent = v ? '+' + fmt(v, 2) + (S.pctStats.includes(s.s) ? '%' : '') : '—'; };
-        showVal(cnt);
-        const cntIn = num(cnt || '', (v) => { build.seals[s.n] = Math.max(0, Math.round(v)); if (!build.seals[s.n]) delete build.seals[s.n]; update(); tierSel.value = Calc.sealTier(s, build.seals[s.n] || 0); showVal(build.seals[s.n] || 0); fillTotals(); }, { min: 0, step: 1, style: { width: '5.5rem' }, placeholder: '0' });
-        const tierSel = select([{ value: -1, label: '—' }, ...S.tierNames.map((n, i) => ({ value: i, label: `${n} (${th[i]})` }))], tier, (v) => {
-          const i = Number(v);
-          if (i < 0) delete build.seals[s.n]; else build.seals[s.n] = th[i];
-          cntIn.value = build.seals[s.n] || ''; update(); showVal(build.seals[s.n] || 0); fillTotals();
-        });
-        tbody.appendChild(h('tr', null,
-          h('td', null, s.n, s.kr ? h('small', { class: 'muted' }, ' ' + s.kr) : null,
-            s.src && s.src.length === 1 && s.src[0] === 'kdmo' ? h('span', { class: 'pill est', title: 'Sólo en datos de KDMO' }, ' KR') : null,
-            s.conf ? h('span', { class: 'pill est', title: 'Las fuentes no coinciden en el valor' }, ' ?') : null),
-          h('td', null, s.s),
-          h('td', null, tierSel),
-          h('td', null, cntIn),
-          h('td', { class: 'num muted' }, s.v[5] + (S.pctStats.includes(s.s) ? '%' : '') + ` @${th[5]}`),
-          valEl));
-      }
-    };
-    fillTotals(); fillRows();
-
-    const bulk = (tierIdx) => {
-      for (const s of filtered()) {
-        if (tierIdx < 0) delete build.seals[s.n];
-        else build.seals[s.n] = S.thresholdTables[s.t][tierIdx];
-      }
-      update(true);
-    };
-
     return h('div', null,
-      h('p', { class: 'muted small' }, `${result.sealCount || 0} activos de ${S.list.length} sellos`),
-      help('Cada sello da su stat según la cantidad: Normal 1 · Bronze 50 · Silver 200 · Gold 500 · Platinum 1000 · Master 3000 (10/20/40/60/80/100% del valor Master). ',
-        'Algunos sellos llegan a Master con menos cartas. AT/HT/HP/DS/DE son planos; CT/EV/BL son puntos %. Aplican al digimon invocado. KR = sólo en KDMO · ? = fuentes en conflicto.'),
-      totalsEl,
-      h('div', { class: 'row' },
-        field('Buscar', h('input', { type: 'search', value: ui.sq, placeholder: 'Nombre del sello…', oninput: (e) => { ui.sq = e.target.value; fillRows(); } })),
-        field('Stat', select([{ value: '', label: 'Todos' }, ...stats], ui.sStat, (v) => { ui.sStat = v; fillRows(); })),
-        h('label', { class: 'inline' }, h('input', { type: 'checkbox', checked: ui.sOwned, onchange: (e) => { ui.sOwned = e.target.checked; fillRows(); } }), 'Sólo los que tengo'),
-        select([{ value: '', label: 'Poner la lista filtrada en…' }, ...S.tierNames.map((n, i) => ({ value: i, label: n })), { value: -1, label: 'Quitar todos' }], '', (v) => { if (v !== '') bulk(Number(v)); })),
-      h('div', { class: 'table-wrap' }, h('table', null,
-        h('thead', null, h('tr', null, h('th', null, 'Sello'), h('th', null, 'Stat'), h('th', null, 'Tier'), h('th', null, 'Cantidad'), h('th', { class: 'num' }, 'Master'), h('th', { class: 'num' }, 'Aporta'))),
-        tbody)),
+      h('p', { class: 'muted small' }, 'Cargá el aporte total de tus sellos por stat.'),
+      h('div', { class: 'row' }, stats.map((k) =>
+        h('div', { class: 'card', style: { padding: '.4rem .6rem', minWidth: '7.5rem' } },
+          h('div', { class: 'muted' }, k),
+          h('b', null, fmt(result.sealTotals?.[k] || 0, 2) + (pct(k) ? '%' : ''))))),
+      h('button', { type: 'button', onclick: openEditor }, 'Editar aporte de sellos'),
+      help('Los valores se suman directamente y se guardan con la build. AT, HT, HP, DS y DE son planos; CT, EV y BL son puntos porcentuales. Las builds anteriores muestran sus totales actuales como punto de partida.')
     );
   }
 
