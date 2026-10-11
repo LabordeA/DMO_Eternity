@@ -173,18 +173,32 @@ window.DMO = window.DMO || {};
     ['Adorable / Cute Doll clothes', { AT: 150, HP: 500, DE: 150 }, 'WIKI'],
   ].forEach(([name, stats, src], i) => add({ id: `cos_${i}`, slot: 'costume', name, stats, src }));
 
-  // ───────── ID Cards ─────────
+  // ───────── Magnetic ID Cards (notas oficiales GameKing) ─────────
+  // Time Ruler (Gobernante del Tiempo, 16.09.2025) y Heaven Wings (05.08.2025): mismos stats.
+  //   Stat principal +0..+15 · Skill Damage desde +5 (EXP: desde +6) hasta +12% · Daño Final +1/+2/+3% en +13/+14/+15.
+  // Digimon King (10.12.2025): stat principal + EXP% · Daño Final en +13..+15.  CT "rating" / 100 = % (igual que los sellos).
   const idMain = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 900, 1000, 1200, 1500];
   const idHP = [700, 800, 900, 1000, 1200, 1500, 1700, 1900, 2100, 2300, 2500, 2800, 3000, 3500, 4000, 5000];
+  const idEXP = [100, 150, 200, 250, 300, 400, 450, 500, 550, 600, 700, 800, 1000, 1100, 1200, 1500];
   const idSCD = [0, 0, 0, 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12];
+  const idSCDexp = [0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12];
   const idFD = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3];
-  add({ id: 'id_yellow', slot: 'id_card', name: 'Magnetic ID Card - Yellow Wings', stats: { SKP: 5, AT: 500, HT: 300 }, src: 'WIKI' });
-  add({ id: 'id_hw_at', slot: 'id_card', name: 'ID Card Heaven Wings / Time Ruler [AT]', enhMax: 15, enh: { AT: idMain, SKP: idSCD, FD: idFD }, src: 'OFFICIAL 21.01.2026' });
-  add({ id: 'id_hw_ht', slot: 'id_card', name: 'ID Card Heaven Wings / Time Ruler [HT]', enhMax: 15, enh: { HT: idMain, SKP: idSCD, FD: idFD }, src: 'OFFICIAL 21.01.2026' });
-  add({ id: 'id_hw_ct', slot: 'id_card', name: 'ID Card Heaven Wings / Time Ruler [CT]', enhMax: 15, enh: { CT: idMain.map((v) => v / 100), SKP: idSCD, FD: idFD }, src: 'OFFICIAL 21.01.2026', note: 'CT rating /100 = % (estimado)' });
-  add({ id: 'id_hw_hp', slot: 'id_card', name: 'ID Card Heaven Wings / Time Ruler [HP]', enhMax: 15, enh: { HP: idHP, SKP: idSCD, FD: idFD }, src: 'OFFICIAL 21.01.2026' });
-  add({ id: 'id_king_at', slot: 'id_card', name: 'ID Card Digimon King [AT]', enhMax: 15, enh: { AT: idMain, FD: idFD }, src: 'OFFICIAL 21.01.2026' });
-  add({ id: 'id_king_hp', slot: 'id_card', name: 'ID Card Digimon King [HP]', enhMax: 15, enh: { HP: idHP, FD: idFD }, src: 'OFFICIAL 21.01.2026' });
+  const idKingEXP = [0, 0, 0, 0, 0, 500, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000];
+  const mainOf = { AT: { AT: idMain }, HT: { HT: idMain }, CT: { CT: idMain.map((v) => v / 100) }, HP: { HP: idHP } };
+  for (const [series, prefix, src] of [['Time Ruler', 'id_tr', 'OFFICIAL 16.09.2025'], ['Heaven Wings', 'id_hw', 'OFFICIAL 05.08.2025']]) {
+    for (const [k, main] of Object.entries(mainOf)) {
+      add({ id: `${prefix}_${k.toLowerCase()}`, slot: 'id_card', name: `Magnetic ID Card – ${series} [${k}]`, enhMax: 15, enh: Object.assign({}, main, { SKP: idSCD, FD: idFD }), src });
+    }
+    add({ id: `${prefix}_exp`, slot: 'id_card', name: `Magnetic ID Card – ${series} [EXP]`, enhMax: 15, enh: { EXP: idEXP, SKP: idSCDexp, FD: idFD }, src });
+  }
+  for (const [k, main] of Object.entries(mainOf)) {
+    add({ id: `id_king_${k.toLowerCase()}`, slot: 'id_card', name: `Magnetic ID Card – Digimon King [${k}]`, enhMax: 15, enh: Object.assign({}, main, { EXP: idKingEXP, FD: idFD }), src: 'OFFICIAL 10.12.2025' });
+  }
+  add({ id: 'id_time_destroyer', slot: 'id_card', name: 'Magnetic ID Card – Time Destroyer', stats: { SKP: 10, CD: 20, HP: 2000 }, src: 'OFFICIAL 18.03.2025' });
+  add({ id: 'id_green_ht', slot: 'id_card', name: 'Magnetic ID Card – Green Wings [HT]', stats: { HT: 300, HP: 2000, EXP: 400 }, src: 'OFFICIAL 11.02.2026' });
+  add({ id: 'id_green_ct', slot: 'id_card', name: 'Magnetic ID Card – Green Wings [CT]', stats: { CT: 3, HP: 2000, EXP: 400 }, src: 'OFFICIAL 11.02.2026', note: 'Oficial "CA +300" = CT 3%' });
+  add({ id: 'id_green_scd', slot: 'id_card', name: 'Magnetic ID Card – Green Wings [Skill]', stats: { AT: 300, SKP: 3, EXP: 400 }, src: 'OFFICIAL 05.08.2025' });
+  add({ id: 'id_yellow', slot: 'id_card', name: 'Magnetic ID Card – Yellow Wings', stats: { SKP: 5, AT: 500, HT: 300 }, src: 'WIKI' });
 
   // ───────── Goggles ─────────
   const kgSCD = [10, 10, 11, 11, 12, 12, 13, 13, 14, 20];

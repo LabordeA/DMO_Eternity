@@ -45,6 +45,22 @@ DMO.attackerTypes = {
   DE: 'Defender (tanque)',
 };
 
+// CT y HT necesarios por dungeon según el nivel del digimon (tabla de la comunidad).
+// est = valor estimado por la comunidad (todavía no confirmado). null = sin dato para ese nivel.
+DMO.dungeonReqs = [
+  { name: 'FDGH', lv170: { ct: 280, ht: 10000 }, lv160: { ct: 305, ht: 11400 } },
+  { name: 'Colo Hard', lv170: { ct: 308, ht: 12600 }, lv160: { ct: 334, ht: 14400 } },
+  { name: 'RBH', lv170: { ct: 316, ht: 11900 }, lv160: { ct: 342, ht: 13600 } },
+  { name: 'SDG', lv170: { ct: 322, ht: 12600 }, lv160: { ct: 349, ht: 14400 } },
+  { name: 'MDG', lv170: { ct: 375, ht: 16800 }, lv160: { ct: 410, ht: 18900 } },
+  { name: 'Gulus Easy', lv170: { ct: 352, ht: 17600 }, lv160: { ct: 374, ht: 19800 } },
+  { name: 'Gulus', lv170: { ct: 485, ht: 25600 }, lv160: { ct: 533, ht: 28500 } },
+  { name: 'Armage', est: true, lv170: { ct: 550, ht: 27000 }, lv160: { ct: 560, ht: 28000 } },
+  { name: 'KDGN', est: true, lv170: { ct: 550, ht: 27000 }, lv160: { ct: 560, ht: 28000 } },
+  { name: 'EOS', est: true, lv170: { ct: 600, ht: 30000 }, lv160: { ct: 610, ht: 31000 } },
+  { name: 'Belial', note: 'araña', lv170: { ct: 640, ht: 27000 }, lv160: null },
+];
+
 // Rangos (grado) que muestra el juego para Mega en adelante, de menor a mayor
 DMO.ranks = ['N', 'A', 'A+', 'S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+', 'U'];
 DMO.rankIndex = (r) => DMO.ranks.indexOf(r);
@@ -82,8 +98,6 @@ DMO.elemChart = {
   Light: ['Pitch Black', 'Steel'], 'Pitch Black': ['Thunder', 'Light'], Thunder: ['Steel', 'Pitch Black'], Steel: ['Light', 'Thunder'],
   Neutral: [null, null],
 };
-// Multiplicadores por defecto (configurables en la pestaña Info). Las fuentes no coinciden: oficial "+20~40%".
-DMO.advantageDefaults = { attrAdv: 50, attrDis: -25, elemAdv: 25, elemDis: -25, elemSame: 10 };
 
 DMO.families = {
   DR: "Dragon's Roar", NSp: 'Nature Spirits', ME: 'Metal Empire', WG: 'Wind Guardians', UK: 'Unknown',

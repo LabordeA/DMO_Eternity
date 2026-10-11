@@ -1,6 +1,6 @@
 # DMO Build Planner
 
-Calculadora de builds para **Digimon Masters Online** (GDMO / KDMO / LADMO). Elegís digimon, clon, sellos, equipo/sets, joyería, digivice/chipsets, tamer, deck y título, y calcula los stats finales con el desglose de dónde sale cada punto y un daño estimado para comparar builds.
+Calculadora de builds para **Digimon Masters Online** (GDMO / KDMO / LADMO). Elegís digimon, clon, sellos, equipo/sets, joyería, digivice/chipsets, tamer, deck y título, y calcula los stats finales con el desglose de dónde sale cada punto, y te muestra si llegás al CT / HT que pide cada dungeon.
 
 ## Uso
 
@@ -20,9 +20,9 @@ Después entrá a http://localhost:8765.
 | Digimon | Digimons rango U / SSS+ / SSS con sus stats a Lv170 y 140%. En "Más opciones": nivel, tamaño, línea evolutiva y edición manual de los stats base |
 | Clon | AT / CT / BL / EV / HP de Lv0 a Lv15 (clon perfecto) o tu % real |
 | Sellos | 582 sellos con sus 6 tiers (Normal → Master), búsqueda, filtros y carga masiva |
-| Equipo | Sets Kaiser (Yolei / T.K. / Davis), Frontier (5 elementos) y Four Holy Beasts; ropa de eventos; costumes (Advanced y con opción HP / AT / SCD); ID cards, goggles, XAI, auras; digivices y chipsets R1–R20 |
+| Equipo | Sets Kaiser (Yolei / T.K. / Davis), Frontier (5 elementos) y Four Holy Beasts; ropa de eventos; costumes (Advanced y con opción HP / AT / SCD); Magnetic ID Cards (Time Ruler, Heaven Wings, Digimon King, Time Destroyer, Green / Yellow Wings), goggles, XAI, auras; digivices y chipsets R1–R20 |
 | Joyería | Sólo endgame: Zero Unit, Digital Hazard, Miracle [Special], Shining Arena Ring y joyería de dungeons — Kindness Earring (Kaiser's Base), Radiant Miracle Necklace (Dark Web), Ring of Hope (Nightmare), Vital Breath y Ghost Keyring (Marketplace), Keyring of Greed (Barbamon), Sloth Bracelet (Belphemon). Cada línea con sus opciones oficiales y Digitary Power |
-| Extras | Tamer (pasivas + FS%), 31 decks, 29 títulos (incluye los logros 2025-2026), buffs, procs, modificadores custom y objetivo del daño |
+| Extras | Tamer (pasivas + FS%), 31 decks, 29 títulos (incluye los logros 2025-2026), buffs, procs y modificadores custom |
 | Comparar | Dos builds lado a lado con diferencias |
 | Info | Fórmulas, ventajas configurables y fuentes |
 
@@ -47,5 +47,5 @@ Si un valor no coincide con el juego, corregilo en estos archivos o usá en la a
 
 - **Stats base:** la fórmula (tamaño × base + crecimiento × multiplicador de etapa) reproduce 1.954 valores de la wiki con error mediano 0%. El crecimiento a Lv180 es extrapolado.
 - **Estimados:** algunos digimons nuevos tienen CT / EV / HT / AS sin publicar (Quantumon, Apollomon, Apollomon Whispered, Abbadomon, Abbadomon Core); la ficha los marca como "algunos valores estimados".
-- **Daño:** el modelo es aproximado. Sirve para comparar builds, no para dar el número exacto del juego.
+- **Requisitos por DG:** CT / HT que pide cada dungeon a Lv160 y Lv170 según la tabla de la comunidad (los marcados "est." son estimados). Están en `data/core.js` (`DMO.dungeonReqs`) para actualizarlos fácil.
 - **LADMO:** no se encontraron datos propios; usa los de GDMO.

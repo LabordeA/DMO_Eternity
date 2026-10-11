@@ -30,8 +30,6 @@
       buffs: [],
       procs: false,
       custom: [],
-      target: { attr: 'Data', elem: 'Neutral', de: 0, attrExp: 100, elemExp: 100, skillBase: 20000 },
-      adv: Object.assign({}, DMO.advantageDefaults),
     };
   };
 
@@ -125,21 +123,6 @@
     return out;
   };
 
-  Calc.attrRelation = function (a, b) {
-    if (!a || !b) return 0;
-    if ((DMO.attrStrong[a] || []).includes(b)) return 1;
-    if ((DMO.attrStrong[b] || []).includes(a)) return -1;
-    return 0;
-  };
-  Calc.elemRelation = function (a, b) {
-    if (!a || !b || a === 'Neutral') return 0;
-    if (b === 'Neutral') return 1;
-    if (a === b) return 2;
-    const [strong, weak] = DMO.elemChart[a] || [];
-    if (strong === b) return 1;
-    if (weak === b) return -1;
-    return 0;
-  };
 
   Calc.compute = function (build) {
     const notes = [];
@@ -329,39 +312,11 @@
     final.SKP = (final.SKP || 0);
     res.final = final;
     res.breakdown = bd;
-    res.damage = Calc.damage(build, res);
     return res;
   };
 
   function UIround(n) { return Math.round(n * 100) / 100; }
 
-  // Estimación de daño (modelo del emulador + configuración de ventajas). Sirve para COMPARAR builds.
-  Calc.damage = function (build, res) {
-    const f = res.final, dg = res.dg, t = build.target, adv = build.adv || DMO.advantageDefaults;
-    const at = f.AT || 0;
-    let nb = at - (Number(t.de) || 0);
-    if (nb < 0.5 * at) nb = 0.6 * at;
-    const ar = Calc.attrRelation(dg.a, t.attr), er = Calc.elemRelation(dg.e, t.elem);
-    const attrExp = (Number(t.attrExp) || 0) / 100, elemExp = (Number(t.elemExp) || 0) / 100;
-    const attrMult = ar === 1 ? (adv.attrAdv + (f.ATT || 0)) / 100 * attrExp : ar === -1 ? adv.attrDis / 100 : 0;
-    const elemMult = er === 1 ? adv.elemAdv / 100 * elemExp : er === -1 ? adv.elemDis / 100 : er === 2 ? adv.elemSame / 100 : 0;
-    const ctRaw = f.CT || 0;
-    const critChance = Math.min(ctRaw, 100) / 100;
-    const cd = 100 + (f.CD || 0);
-    const fd = 1 + (f.FD || 0) / 100;
-    const normalHit = nb * (1 + attrMult + elemMult) * (1 + (f.NDMG || 0) / 100) * fd;
-    const normalCrit = normalHit + nb * cd / 100 * fd;
-    const normalAvg = normalHit * (1 - critChance) + normalCrit * critChance;
-    const dps = normalAvg / (f.AS || 2);
-    const sb = Number(t.skillBase) || 0;
-    const skillBase = sb * (1 + (res.atCloneSkill || 0) / 100);
-    const skill = (skillBase * (1 + (f.SKP || 0) / 100) + at + (f.SK || 0) + skillBase * (attrMult + elemMult)) * fd;
-    return {
-      attrRel: ar, elemRel: er, attrMult, elemMult, critChance, cd,
-      normalHit: Math.floor(normalHit), normalCrit: Math.floor(normalCrit), normalAvg: Math.floor(normalAvg),
-      dps: Math.floor(dps), skill: Math.floor(skill),
-    };
-  };
 
   window.Calc = Calc;
 })();

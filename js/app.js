@@ -40,9 +40,9 @@
   function migrate(b) {
     const d = Calc.defaultBuild();
     const out = Object.assign(d, b);
-    for (const k of ['digimon', 'clone', 'tamer', 'digivice', 'target']) out[k] = Object.assign({}, Calc.defaultBuild()[k], b[k] || {});
+    for (const k of ['digimon', 'clone', 'tamer', 'digivice']) out[k] = Object.assign({}, Calc.defaultBuild()[k], b[k] || {});
     out.tamer.stats = Object.assign({ HP: 0, DS: 0, AT: 0, DE: 0 }, (b.tamer || {}).stats || {});
-    out.adv = Object.assign({}, DMO.advantageDefaults, b.adv || {});
+    delete out.target; delete out.adv;
     for (const k of ['seals', 'equip', 'jewelry']) out[k] = b[k] || {};
     for (const k of ['chips', 'buffs', 'custom']) out[k] = Array.isArray(b[k]) ? b[k] : [];
     return out;
@@ -605,15 +605,6 @@
       h('h3', null, 'Modificadores custom'),
       h('p', { class: 'muted small' }, 'Para lo que falte: skills de tamer, buffs de guild, memory skills, ítems nuevos… "% base" = % del stat base del digimon.'),
       h('div', { class: 'card' }, customLinesLabeled(build.custom)),
-      h('h3', null, 'Objetivo (para la estimación de daño)'),
-      h('div', { class: 'row' },
-        field('Atributo del enemigo', select(DMO.attributes, build.target.attr, (v) => set((b) => { b.target.attr = v; }))),
-        field('Elemento del enemigo', select(DMO.elements.map((e) => ({ value: e, label: DMO.elemLabels[e] })), build.target.elem, (v) => set((b) => { b.target.elem = v; }))),
-        field('DE del enemigo', num(build.target.de, (v) => set((b) => { b.target.de = v; }))),
-        field('EXP de atributo %', num(build.target.attrExp, (v) => set((b) => { b.target.attrExp = Math.max(0, Math.min(v, 100)); }))),
-        field('EXP de elemento %', num(build.target.elemExp, (v) => set((b) => { b.target.elemExp = Math.max(0, Math.min(v, 100)); }))),
-        field('Daño base de la skill', num(build.target.skillBase, (v) => set((b) => { b.target.skillBase = v; }))),
-      ),
     );
   }
 
@@ -651,16 +642,9 @@
         return h('tr', null, h('td', null, statLabel(k)), h('td', { class: 'num' }, fmtStat(k, va)), h('td', { class: 'num' }, fmtStat(k, vb)),
           h('td', { class: 'num ' + (d === 0 ? '' : better ? 'delta-pos' : 'delta-neg') }, d === 0 ? '=' : (d > 0 ? '+' : '') + fmtStat(k, d)));
       });
-      const dmgRows = [['Golpe normal (prom.)', 'normalAvg'], ['DPS normal', 'dps'], ['Skill (sin crit)', 'skill']].map(([l, k]) => {
-        const d = rb.damage[k] - ra.damage[k];
-        const p = ra.damage[k] ? d / ra.damage[k] * 100 : 0;
-        return h('tr', null, h('td', null, l), h('td', { class: 'num' }, fmt(ra.damage[k])), h('td', { class: 'num' }, fmt(rb.damage[k])),
-          h('td', { class: 'num ' + (d > 0 ? 'delta-pos' : d < 0 ? 'delta-neg' : '') }, d === 0 ? '=' : `${d > 0 ? '+' : ''}${fmt(d)} (${fmt(p, 1)}%)`));
-      });
       out.appendChild(h('table', null,
         h('thead', null, h('tr', null, h('th', null, 'Stat'), h('th', { class: 'num' }, `A: ${ra.dg?.n || '?'}`), h('th', { class: 'num' }, `B: ${rb.dg?.n || '?'}`), h('th', { class: 'num' }, 'B − A'))),
-        h('tbody', null, rows, dmgRows)));
-      out.appendChild(h('p', { class: 'muted' }, 'El daño usa el objetivo configurado en cada build (pestaña Extras).'));
+        h('tbody', null, rows)));
     } else out.appendChild(h('p', { class: 'muted' }, 'Elegí dos builds. Guardá builds con el botón "Guardar" o fijá una referencia desde el panel de la derecha.'));
     return h('div', null,
       h('div', { class: 'row' },
@@ -671,7 +655,6 @@
 
   // ───────────────────────── Tab: Info ─────────────────────────
   function tabInfo() {
-    const adv = build.adv;
     return h('div', { class: 'info-block' },
       h('h2', null, 'Cómo calcula'),
       h('pre', null,
@@ -683,22 +666,9 @@
 Clon  AT/CT/EV/HP = base × clon%   ·   BL = clon% plano
 Total = base + clon + sellos + título + joyería×DP + equipo + sets + chipsets + digivice
         + stats del tamer × FS% + % sobre base (pasivas tamer, deck, buffs) + custom
-AS    = AS_base × (1 − Vel.Ataque%)  (mín 0.3 s)
-
-Daño normal ≈ max(AT − DE_enemigo, 0.6·AT) × (1 + atributo + elemento) × (1 + Daño Normal%) × (1 + Daño Final%)
-  crítico: + base × (100% + Daño Crít.)   ·   promedio con prob. = min(CT, 100%)
-Skill ≈ [base_skill × (1 + clonAT_skill) × (1 + Skill%) + AT + Daño Skill plano + base_skill × (atributo + elemento)] × (1 + Daño Final%)`),
-      h('div', { class: 'notice warn' }, 'El CT mostrado no es la probabilidad real: el nivel, el atributo y la resistencia del mob la reducen (late game pide ~200-250%). ',
-        'Las fórmulas de daño son un modelo para COMPARAR builds, no el número exacto del juego.'),
-      h('h3', null, 'Ventajas (configurables)'),
-      h('p', { class: 'muted' }, 'Las fuentes no coinciden: oficial "+20~40%", wiki ±25% por elemento, comunidad "+50% con 100% de atributo". Ajustá según tu experiencia.'),
-      h('div', { class: 'row' },
-        field('Ventaja de atributo %', num(adv.attrAdv, (v) => set((b) => { b.adv.attrAdv = v; }))),
-        field('Desventaja de atributo %', num(adv.attrDis, (v) => set((b) => { b.adv.attrDis = v; }))),
-        field('Ventaja de elemento %', num(adv.elemAdv, (v) => set((b) => { b.adv.elemAdv = v; }))),
-        field('Desventaja de elemento %', num(adv.elemDis, (v) => set((b) => { b.adv.elemDis = v; }))),
-        field('Mismo elemento %', num(adv.elemSame, (v) => set((b) => { b.adv.elemSame = v; }))),
-        h('button', { onclick: () => set((b) => { b.adv = Object.assign({}, DMO.advantageDefaults); }, true) }, 'Restaurar')),
+AS    = AS_base × (1 − Vel.Ataque%)  (mín 0.3 s)`),
+      h('h3', null, 'Requisitos por DG'),
+      h('p', null, 'El panel de la derecha muestra el CT y el HT que pide cada dungeon a Lv160 y Lv170 (tabla de la comunidad). Verde = tu digimon llega · rojo = no llega. "est." = valor estimado.'),
       h('h3', null, 'Atributos y elementos'),
       h('p', null, 'Vaccine > Virus > Data > Vaccine · Unknown le gana a todos · todos le ganan a None.'),
       h('p', null, 'Fuego > Hielo > Agua > Fuego · Viento > Madera > Tierra > Viento · Luz > Oscuridad > Trueno > Acero > Luz.'),
@@ -756,24 +726,22 @@ Skill ≈ [base_skill × (1 + clonAT_skill) × (1 + Skill%) + AT + Daño Skill p
         h('td', null, x.src, h('div', { class: 'bar' }, h('i', { style: { width: (Math.abs(x.v) / total * 100).toFixed(1) + '%' } }))),
         h('td', { class: 'num' }, (x.v >= 0 ? '+' : '') + fmtStat(openBreakdown === 'AS' ? 'AS' : openBreakdown, x.v)))))) : h('p', { class: 'muted' }, 'Sin aportes.')));
 
-    // Daño
-    const d = r.damage;
-    const rel = (x) => x === 1 ? 'ventaja' : x === -1 ? 'desventaja' : x === 2 ? 'mismo' : 'neutral';
-    const dRow = (label, k) => {
-      let delta = null;
-      if (refR && refR.damage[k]) {
-        const p = (d[k] - refR.damage[k]) / refR.damage[k] * 100;
-        if (Math.abs(p) > 0.001) delta = h('span', { class: p > 0 ? 'delta-pos' : 'delta-neg' }, ` (${p > 0 ? '+' : ''}${fmt(p, 1)}%)`);
-      }
-      return h('tr', null, h('td', null, label), h('td', { class: 'num' }, fmt(d[k]), delta));
-    };
+    // Requisitos de CT / HT por dungeon (Lv160 y Lv170)
+    const myCT = r.final.CT || 0, myHT = r.final.HT || 0;
+    const lvCol = build.digimon.level >= 170 ? 'lv170' : build.digimon.level >= 160 ? 'lv160' : null;
+    const req = (v, mine, pct) => h('span', { class: mine >= v ? 'req-ok' : 'req-no' }, fmt(v) + (pct ? '%' : ''));
     el.appendChild(h('div', { class: 'breakdown' },
-      h('h3', null, 'Daño estimado'),
-      h('div', { class: 'muted' }, `vs ${build.target.attr} / ${DMO.elemLabels[build.target.elem]} (DE ${build.target.de}) · atributo: ${rel(d.attrRel)} · elemento: ${rel(d.elemRel)}`),
-      h('table', null, h('tbody', null,
-        dRow('Golpe normal', 'normalHit'), dRow('Golpe crítico', 'normalCrit'), dRow('Promedio (CT ' + fmt(Math.min(r.final.CT || 0, 100), 1) + '%)', 'normalAvg'),
-        dRow('DPS normal', 'dps'), dRow(`Skill (base ${fmt(build.target.skillBase)})`, 'skill'))),
-      h('small', { class: 'muted' }, 'Modelo aproximado para comparar. Configurá el objetivo en Extras.')));
+      h('h3', null, 'Requisitos por DG'),
+      h('div', { class: 'muted small' }, `Tu digimon: CT ${fmt(myCT, 2)}% · HT ${fmt(myHT)}`),
+      h('table', { class: 'req-table' },
+        h('thead', null, h('tr', null, h('th', null, 'DG'),
+          h('th', { class: 'num' + (lvCol === 'lv160' ? ' req-cur' : '') }, 'Lv 160'),
+          h('th', { class: 'num' + (lvCol === 'lv170' ? ' req-cur' : '') }, 'Lv 170'))),
+        h('tbody', null, DMO.dungeonReqs.map((dgr) => h('tr', null,
+          h('td', null, dgr.name, dgr.note ? h('small', { class: 'muted' }, ` (${dgr.note})`) : null, dgr.est ? h('small', { class: 'muted' }, ' est.') : null),
+          ...['lv160', 'lv170'].map((lv) => h('td', { class: 'num' + (lvCol === lv ? ' req-cur' : '') },
+            dgr[lv] ? [req(dgr[lv].ct, myCT, true), h('span', { class: 'muted' }, ' / '), req(dgr[lv].ht, myHT, false)] : h('span', { class: 'muted' }, '—'))))))),
+      h('small', { class: 'muted' }, 'CT / HT · verde = llega · rojo = no llega')));
 
     // Sets / avisos / notas
     if (r.sets.length) el.appendChild(h('div', { class: 'breakdown' }, h('h3', null, 'Sets'), r.sets.map((s) => h('div', null, `${s.name}: ${s.pieces}/${s.max} piezas`, s.active.length ? ` · ${s.active.map((a) => a.pieces + 'p' + (a.counted ? '' : ' (proc)')).join(', ')}` : ''))));
