@@ -647,13 +647,21 @@
     for (let i = 0; i < dv.slots; i++) {
       const c = build.chips[i] = build.chips[i] || { type: 'family', rank: 18, stat: 'AT', fam: dg?.fam?.[0] || 'VB' };
       const val = Calc.chipValue(c);
+      const chipOptions = Calc.chipOptions(c);
       chipRows.push(h('div', { class: 'mod-line' },
         h('span', { class: 'muted' }, `#${i + 1}`),
-        select(C.types.map((t) => ({ value: t.key, label: t.label })), c.type, (v) => set((b) => { b.chips[i].type = v; if (v === 'double' && !b.chips[i].sub) b.chips[i].sub = 'HT'; }, true)),
+        select(C.types.map((t) => ({ value: t.key, label: t.label })), c.type, (v) => set((b) => { b.chips[i].type = v; delete b.chips[i].v; delete b.chips[i].subV; if (v === 'double' && !b.chips[i].sub) b.chips[i].sub = 'HT'; }, true)),
         c.type !== 'all' ? select(C.families.map((f) => ({ value: f, label: f })), c.fam, (v) => set((b) => { b.chips[i].fam = v; }, true), { title: 'Familia' }) : null,
-        select(Array.from({ length: 20 }, (_, r) => ({ value: r + 1, label: 'R' + (r + 1) + (C.estRanks.includes(r + 1) ? '*' : '') })), c.rank, (v) => set((b) => { b.chips[i].rank = Number(v); }, true)),
-        select(C.stats, c.stat, (v) => set((b) => { b.chips[i].stat = v; }, true)),
-        c.type === 'double' ? select(C.stats, c.sub, (v) => set((b) => { b.chips[i].sub = v; }, true), { title: 'Sub stat' }) : null,
+        select(Array.from({ length: 20 }, (_, r) => ({ value: r + 1, label: 'R' + (r + 1) + (C.estRanks.includes(r + 1) ? '*' : '') })), c.rank, (v) => set((b) => { b.chips[i].rank = Number(v); delete b.chips[i].v; delete b.chips[i].subV; }, true)),
+        select(C.stats, c.stat, (v) => set((b) => { b.chips[i].stat = v; delete b.chips[i].v; }, true)),
+        c.type === 'double' ? select(C.stats, c.sub, (v) => set((b) => { b.chips[i].sub = v; delete b.chips[i].subV; }, true), { title: 'Sub stat' }) : null,
+        c.type === 'double' ? field(`Principal (máx ${fmt(chipOptions.main.max, 2)})`, num(chipOptions.main.value, (v) => set((b) => {
+          const chip = b.chips[i]; chip.v = v; chip.v = Calc.chipOptions(chip).main.value;
+        }, true), { min: 0, max: chipOptions.main.max, step: chipOptions.main.step, style: { width: '6rem' } })) : null,
+        chipOptions.sub ? field(`Secundario (máx ${fmt(chipOptions.sub.max, 2)})`, num(chipOptions.sub.value, (v) => set((b) => {
+          const chip = b.chips[i]; chip.subV = v; chip.subV = Calc.chipOptions(chip).sub.value;
+        }, true), { min: 0, max: chipOptions.sub.max, step: chipOptions.sub.step, style: { width: '6rem' } })) : null,
+        c.type === 'double' ? h('button', { class: 'small', onclick: () => set((b) => { delete b.chips[i].v; delete b.chips[i].subV; }, true) }, 'Valores al máximo') : null,
         h('small', { class: 'muted' }, Object.entries(val).map(([k, v]) => `${k} +${fmt(v, 2)}`).join(' / '))));
     }
     return h('div', null,

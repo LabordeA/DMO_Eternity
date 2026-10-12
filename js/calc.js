@@ -110,17 +110,27 @@
     return out;
   };
 
-  Calc.chipValue = function (chip) {
+  // Opciones independientes: un duplo conserva principal y secundario incluso si comparten stat.
+  Calc.chipOptions = function (chip) {
     const C = DMO.equipment.chipsets;
     const r = Math.max(1, Math.min(chip.rank || 18, 20)) - 1;
-    const main = (C.family[chip.stat] || [])[r] || 0;
-    const ratio = chip.type === 'all' ? C.allFamilyRatio : 1;
-    const out = {};
-    out[chip.stat] = Math.round(main * ratio * 100) / 100;
-    if (chip.type === 'double' && chip.sub) {
-      const subV = (C.family[chip.sub] || [])[r] || 0;
-      out[chip.sub] = (out[chip.sub] || 0) + Math.round(subV * C.doubleSubRatio * 100) / 100;
-    }
+    const option = (stat, ratio, raw) => {
+      const step = ['CT', 'EV'].includes(stat) ? 0.01 : 1;
+      const maxStep = chip.type === 'double' ? step : 0.01;
+      const max = Math.round(((C.family[stat] || [])[r] || 0) * ratio / maxStep) * maxStep;
+      let value = raw == null || raw === '' || !Number.isFinite(Number(raw)) ? max : Number(raw);
+      if (chip.type === 'double') value = Math.round(Math.max(0, Math.min(value, max)) / step) * step;
+      return { stat, max: Math.round(max * 100) / 100, value: Math.round(value * 100) / 100, step };
+    };
+    return {
+      main: option(chip.stat, chip.type === 'all' ? C.allFamilyRatio : 1, chip.v),
+      sub: chip.type === 'double' && chip.sub ? option(chip.sub, C.doubleSubRatio, chip.subV) : null,
+    };
+  };
+  Calc.chipValue = function (chip) {
+    const options = Calc.chipOptions(chip);
+    const out = { [options.main.stat]: options.main.value };
+    if (options.sub) out[options.sub.stat] = (out[options.sub.stat] || 0) + options.sub.value;
     return out;
   };
 
@@ -253,7 +263,7 @@
           res.warnings.push(`Chip ${i + 1} (${c.fam}) no coincide con la familia del digimon → sin efecto.`);
           return;
         }
-        const vals = c.v != null && c.v !== '' ? { [c.stat]: Number(c.v) } : Calc.chipValue(c);
+        const vals = Calc.chipValue(c);
         for (const [k, v] of Object.entries(vals)) add(k, v, `Chipsets`);
       });
     }
