@@ -45,7 +45,7 @@
     delete out.target; delete out.adv;
     for (const k of ['seals', 'equip', 'jewelry']) out[k] = b[k] || {};
     for (const k of ['chips', 'buffs', 'custom']) out[k] = Array.isArray(b[k]) ? b[k] : [];
-    return out;
+    return DMO.jewelry.normalizeBuild(out);
   }
   function saveCurrent() { try { localStorage.setItem(LS_CUR, JSON.stringify(build)); } catch (e) { /* lleno */ } }
   function savedBuilds() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
@@ -72,6 +72,7 @@
 
   // ───────────────────────── Ciclo de render ─────────────────────────
   function update(rerenderTab) {
+    DMO.jewelry.normalizeBuild(build);
     result = Calc.compute(build);
     saveCurrent();
     renderSummary();
@@ -325,77 +326,148 @@
     );
   }
 
-  function tabSealsIndividual() {
-    const S = DMO.seals;
-    const totalsEl = h('div', { class: 'row' });
-    const tbody = h('tbody');
-    const stats = ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL'];
-
-    const filtered = () => {
-      const q = ui.sq.toLowerCase();
-      return S.list.filter((s) => (!q || s.n.toLowerCase().includes(q) || (s.kr || '').includes(q)) && (!ui.sStat || s.s === ui.sStat) && (!ui.sOwned || build.seals[s.n] > 0));
-    };
-    const fillTotals = () => {
-      clear(totalsEl);
-      for (const k of stats) {
-        const v = result.sealTotals?.[k] || 0;
-        const max = S.list.filter((s) => s.s === k).reduce((a, s) => a + s.v[5], 0);
-        totalsEl.appendChild(h('div', { class: 'card', style: { padding: '.4rem .6rem', minWidth: '7.5rem' } },
-          h('div', { class: 'muted' }, k), h('b', null, fmt(v, 2) + (S.pctStats.includes(k) ? '%' : '')), h('div', { class: 'muted', style: { fontSize: '.75rem' } }, 'máx ' + fmt(max, 1))));
-      }
-    };
-    const fillRows = () => {
-      clear(tbody);
-      for (const s of filtered()) {
-        const cnt = build.seals[s.n] || 0;
-        const tier = Calc.sealTier(s, cnt);
-        const th = S.thresholdTables[s.t];
-        const valEl = h('td', { class: 'num' });
-        const showVal = (c) => { const v = Calc.sealValue(s, c); valEl.textContent = v ? '+' + fmt(v, 2) + (S.pctStats.includes(s.s) ? '%' : '') : '—'; };
-        showVal(cnt);
-        const cntIn = num(cnt || '', (v) => { build.seals[s.n] = Math.max(0, Math.round(v)); if (!build.seals[s.n]) delete build.seals[s.n]; update(); tierSel.value = Calc.sealTier(s, build.seals[s.n] || 0); showVal(build.seals[s.n] || 0); fillTotals(); }, { min: 0, step: 1, style: { width: '5.5rem' }, placeholder: '0' });
-        const tierSel = select([{ value: -1, label: '—' }, ...S.tierNames.map((n, i) => ({ value: i, label: `${n} (${th[i]})` }))], tier, (v) => {
-          const i = Number(v);
-          if (i < 0) delete build.seals[s.n]; else build.seals[s.n] = th[i];
-          cntIn.value = build.seals[s.n] || ''; update(); showVal(build.seals[s.n] || 0); fillTotals();
-        });
-        tbody.appendChild(h('tr', null,
-          h('td', null, s.n, s.kr ? h('small', { class: 'muted' }, ' ' + s.kr) : null,
-            s.src && s.src.length === 1 && s.src[0] === 'kdmo' ? h('span', { class: 'pill est', title: 'Sólo en datos de KDMO' }, ' KR') : null,
-            s.conf ? h('span', { class: 'pill est', title: 'Las fuentes no coinciden en el valor' }, ' ?') : null),
-          h('td', null, s.s),
-          h('td', null, tierSel),
-          h('td', null, cntIn),
-          h('td', { class: 'num muted' }, s.v[5] + (S.pctStats.includes(s.s) ? '%' : '') + ` @${th[5]}`),
-          valEl));
-      }
-    };
-    fillTotals(); fillRows();
-
-    const bulk = (tierIdx) => {
-      for (const s of filtered()) {
-        if (tierIdx < 0) delete build.seals[s.n];
-        else build.seals[s.n] = S.thresholdTables[s.t][tierIdx];
-      }
-      update(true);
-    };
-
-    return h('div', null,
-      h('p', { class: 'muted small' }, `${result.sealCount || 0} activos de ${S.list.length} sellos`),
-      help('Cada sello da su stat según la cantidad: Normal 1 · Bronze 50 · Silver 200 · Gold 500 · Platinum 1000 · Master 3000 (10/20/40/60/80/100% del valor Master). ',
-        'Algunos sellos llegan a Master con menos cartas. AT/HT/HP/DS/DE son planos; CT/EV/BL son puntos %. Aplican al digimon invocado. KR = sólo en KDMO · ? = fuentes en conflicto.'),
-      totalsEl,
-      h('div', { class: 'row' },
-        field('Buscar', h('input', { type: 'search', value: ui.sq, placeholder: 'Nombre del sello…', oninput: (e) => { ui.sq = e.target.value; fillRows(); } })),
-        field('Stat', select([{ value: '', label: 'Todos' }, ...stats], ui.sStat, (v) => { ui.sStat = v; fillRows(); })),
-        h('label', { class: 'inline' }, h('input', { type: 'checkbox', checked: ui.sOwned, onchange: (e) => { ui.sOwned = e.target.checked; fillRows(); } }), 'Sólo los que tengo'),
-        select([{ value: '', label: 'Poner la lista filtrada en…' }, ...S.tierNames.map((n, i) => ({ value: i, label: n })), { value: -1, label: 'Quitar todos' }], '', (v) => { if (v !== '') bulk(Number(v)); })),
-      h('div', { class: 'table-wrap' }, h('table', null,
-        h('thead', null, h('tr', null, h('th', null, 'Sello'), h('th', null, 'Stat'), h('th', null, 'Tier'), h('th', null, 'Cantidad'), h('th', { class: 'num' }, 'Master'), h('th', { class: 'num' }, 'Aporta'))),
-        tbody)),
-    );
-  }
-
+  function tabSealsIndividual() {
+
+    const S = DMO.seals;
+
+    const totalsEl = h('div', { class: 'row' });
+
+    const tbody = h('tbody');
+
+    const stats = ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL'];
+
+
+
+    const filtered = () => {
+
+      const q = ui.sq.toLowerCase();
+
+      return S.list.filter((s) => (!q || s.n.toLowerCase().includes(q) || (s.kr || '').includes(q)) && (!ui.sStat || s.s === ui.sStat) && (!ui.sOwned || build.seals[s.n] > 0));
+
+    };
+
+    const fillTotals = () => {
+
+      clear(totalsEl);
+
+      for (const k of stats) {
+
+        const v = result.sealTotals?.[k] || 0;
+
+        const max = S.list.filter((s) => s.s === k).reduce((a, s) => a + s.v[5], 0);
+
+        totalsEl.appendChild(h('div', { class: 'card', style: { padding: '.4rem .6rem', minWidth: '7.5rem' } },
+
+          h('div', { class: 'muted' }, k), h('b', null, fmt(v, 2) + (S.pctStats.includes(k) ? '%' : '')), h('div', { class: 'muted', style: { fontSize: '.75rem' } }, 'máx ' + fmt(max, 1))));
+
+      }
+
+    };
+
+    const fillRows = () => {
+
+      clear(tbody);
+
+      for (const s of filtered()) {
+
+        const cnt = build.seals[s.n] || 0;
+
+        const tier = Calc.sealTier(s, cnt);
+
+        const th = S.thresholdTables[s.t];
+
+        const valEl = h('td', { class: 'num' });
+
+        const showVal = (c) => { const v = Calc.sealValue(s, c); valEl.textContent = v ? '+' + fmt(v, 2) + (S.pctStats.includes(s.s) ? '%' : '') : '—'; };
+
+        showVal(cnt);
+
+        const cntIn = num(cnt || '', (v) => { build.seals[s.n] = Math.max(0, Math.round(v)); if (!build.seals[s.n]) delete build.seals[s.n]; update(); tierSel.value = Calc.sealTier(s, build.seals[s.n] || 0); showVal(build.seals[s.n] || 0); fillTotals(); }, { min: 0, step: 1, style: { width: '5.5rem' }, placeholder: '0' });
+
+        const tierSel = select([{ value: -1, label: '—' }, ...S.tierNames.map((n, i) => ({ value: i, label: `${n} (${th[i]})` }))], tier, (v) => {
+
+          const i = Number(v);
+
+          if (i < 0) delete build.seals[s.n]; else build.seals[s.n] = th[i];
+
+          cntIn.value = build.seals[s.n] || ''; update(); showVal(build.seals[s.n] || 0); fillTotals();
+
+        });
+
+        tbody.appendChild(h('tr', null,
+
+          h('td', null, s.n, s.kr ? h('small', { class: 'muted' }, ' ' + s.kr) : null,
+
+            s.src && s.src.length === 1 && s.src[0] === 'kdmo' ? h('span', { class: 'pill est', title: 'Sólo en datos de KDMO' }, ' KR') : null,
+
+            s.conf ? h('span', { class: 'pill est', title: 'Las fuentes no coinciden en el valor' }, ' ?') : null),
+
+          h('td', null, s.s),
+
+          h('td', null, tierSel),
+
+          h('td', null, cntIn),
+
+          h('td', { class: 'num muted' }, s.v[5] + (S.pctStats.includes(s.s) ? '%' : '') + ` @${th[5]}`),
+
+          valEl));
+
+      }
+
+    };
+
+    fillTotals(); fillRows();
+
+
+
+    const bulk = (tierIdx) => {
+
+      for (const s of filtered()) {
+
+        if (tierIdx < 0) delete build.seals[s.n];
+
+        else build.seals[s.n] = S.thresholdTables[s.t][tierIdx];
+
+      }
+
+      update(true);
+
+    };
+
+
+
+    return h('div', null,
+
+      h('p', { class: 'muted small' }, `${result.sealCount || 0} activos de ${S.list.length} sellos`),
+
+      help('Cada sello da su stat según la cantidad: Normal 1 · Bronze 50 · Silver 200 · Gold 500 · Platinum 1000 · Master 3000 (10/20/40/60/80/100% del valor Master). ',
+
+        'Algunos sellos llegan a Master con menos cartas. AT/HT/HP/DS/DE son planos; CT/EV/BL son puntos %. Aplican al digimon invocado. KR = sólo en KDMO · ? = fuentes en conflicto.'),
+
+      totalsEl,
+
+      h('div', { class: 'row' },
+
+        field('Buscar', h('input', { type: 'search', value: ui.sq, placeholder: 'Nombre del sello…', oninput: (e) => { ui.sq = e.target.value; fillRows(); } })),
+
+        field('Stat', select([{ value: '', label: 'Todos' }, ...stats], ui.sStat, (v) => { ui.sStat = v; fillRows(); })),
+
+        h('label', { class: 'inline' }, h('input', { type: 'checkbox', checked: ui.sOwned, onchange: (e) => { ui.sOwned = e.target.checked; fillRows(); } }), 'Sólo los que tengo'),
+
+        select([{ value: '', label: 'Poner la lista filtrada en…' }, ...S.tierNames.map((n, i) => ({ value: i, label: n })), { value: -1, label: 'Quitar todos' }], '', (v) => { if (v !== '') bulk(Number(v)); })),
+
+      h('div', { class: 'table-wrap' }, h('table', null,
+
+        h('thead', null, h('tr', null, h('th', null, 'Sello'), h('th', null, 'Stat'), h('th', null, 'Tier'), h('th', null, 'Cantidad'), h('th', { class: 'num' }, 'Master'), h('th', { class: 'num' }, 'Aporta'))),
+
+        tbody)),
+
+    );
+
+  }
+
+
+
   function tabSealsManual() {
     const stats = ['AT', 'HT', 'HP', 'DS', 'DE', 'CT', 'EV', 'BL'];
     const pct = (k) => DMO.seals.pctStats.includes(k);
@@ -592,9 +664,8 @@
         j.lines = j.lines || [];
         while (j.lines.length < nLines) j.lines.push({ stat: '', v: 0 });
         if (j.lines.length > nLines) j.lines.length = nLines;
-        // Pool de opciones de cada línea (los ítems de dungeon tienen un pool distinto por línea)
+        // Pool completo y limites de repeticion propios de la pieza
         const poolOf = (i) => (item ? J.linePool(item, level, i) : null);
-        const perLine = !!(item && (item.linePools || item.lineGroups));
         body.appendChild(h('div', { class: 'row', style: { marginBottom: '.4rem' } },
           item?.levels ? field(item.levelBase === 0 ? 'Mejora' : 'Nivel', select(Array.from({ length: item.levels }, (_, i) => ({ value: i + 1, label: item.levelBase === 0 ? '+' + i : 'Lv' + (i + 1) })), level, (v) => set((b) => { b.jewelry[slot.key].level = Number(v); }, true))) : null,
           field(`Digitary Power % (máx ${dpMax})`, num(j.dp ?? 100, (v) => set((b) => { b.jewelry[slot.key].dp = Math.max(J.dp.min, Math.min(v, dpMax)); }, true), { style: { width: '5rem' } })),
@@ -605,18 +676,18 @@
         j.lines.forEach((l, i) => {
           const lp = poolOf(i);
           const rng = lp?.[l.stat];
-          const lim = perLine ? null : J.dupLimits[slot.key]?.[l.stat];
+          const lim = item ? J.limitFor(item, l.stat) : null;
           const over = lim && counts[l.stat] > lim;
           const keys = lp ? Object.keys(lp) : statKeysAll;
           if (l.stat && lp && !lp[l.stat]) keys.push(l.stat); // conserva un valor viejo que ya no está en el pool
           const fixed = item?.fixed?.[i];
           body.appendChild(h('div', { class: 'mod-line' },
             fixed ? h('span', { style: { minWidth: '7rem' } }, statLabel(fixed === 'AS' ? 'ASP' : fixed))
-              : select([{ value: '', label: perLine ? `— línea ${i + 1} —` : '— línea —' }, ...keys.map((k) => ({ value: k, label: statLabel(k === 'AS' ? 'ASP' : k) }))], l.stat, (v) => set((b) => { const L = b.jewelry[slot.key].lines[i]; L.stat = v; L.v = lp?.[v]?.[1] ?? 0; }, true)),
+              : select([{ value: '', label: `— línea ${i + 1} —` }, ...keys.map((k) => ({ value: k, label: statLabel(k === 'AS' ? 'ASP' : k) }))], l.stat, (v) => set((b) => { const L = b.jewelry[slot.key].lines[i]; L.stat = v; L.v = lp?.[v]?.[1] ?? 0; }, true)),
             num(l.v, (v) => set((b) => { b.jewelry[slot.key].lines[i].v = v; })),
             rng ? h('small', { class: 'muted' }, `${rng[0] ?? '?'}–${rng[1]}`) : null,
             l.stat && l.v ? h('small', null, `→ ${fmt(l.v * (j.dp ?? 100) / 100, 2)}`) : null,
-            over ? h('span', { class: 'pill est', title: `Máximo ${lim} líneas de ${l.stat} en este slot` }, '¡repetida!') : null));
+            over ? h('span', { class: 'pill est', title: `Máximo ${lim} líneas de ${l.stat} en esta pieza` }, '¡repetida!') : null));
         });
         if (!item) body.appendChild(h('div', null,
           h('button', { class: 'small', onclick: () => set((b) => { b.jewelry[slot.key].lines.push({ stat: '', v: 0 }); }, true) }, '+ línea'),
@@ -642,7 +713,7 @@
       help(h('p', null, 'Joyería de endgame: Zero Unit y Digital Hazard (vienen al máximo), Miracle [Special], Shining Arena Ring (Arena [Hard]) y la de dungeons: ',
         "Kaiser's Base (Kindness Earring), Dark Web / Armagemon (Miracle Necklace), Nightmare / VenomMyotismon (Ring of Hope), Marketplace (Vital Breath, Ghost Keyring), Barbamon (Keyring of Greed) y Belphemon (Sloth Bracelet)."),
         h('p', null, 'Valor final de cada línea = valor × Digitary Power / 100 (DP 95%–200%). Los rangos mostrados son a 100% DP. ',
-          'En la joyería de dungeon cada línea tiene sus propias opciones (según la tabla oficial). Option Change reroll todas las líneas; Number Change sólo el valor de una.'),
+          'Cada línea ofrece todas las opciones de la pieza; el aviso de repetición indica si excedés su límite. Option Change reroll todas las líneas; Number Change sólo el valor de una.'),
         h('p', null, 'Líneas recomendadas: ' + J.slots.map((x) => `${x.label}: ${J.recommended[x.key]}`).join(' · '))),
       h('div', { class: 'grid-cards' }, cards, equipCard(DMO.equipment.slots.find((x) => x.key === 'keyring'))));
   }
