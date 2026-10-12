@@ -570,7 +570,7 @@
   function equipCard(slot) {
     const E = DMO.equipment;
       const eq = build.equip[slot.key] || {};
-      const opts = [{ value: '', label: '— Vacío —' }, ...E.items.filter((i) => i.slot === slot.key).map((i) => ({ value: i.id, label: i.name })), { value: 'custom', label: '✎ Custom (cargar stats a mano)' }];
+      const opts = [{ value: '', label: '— Vacío —' }, ...E.items.filter((i) => i.slot === slot.key && (!i.hidden || i.id === eq.id)).map((i) => ({ value: i.id, label: i.name + (i.hidden ? ' (guardado)' : '') })), { value: 'custom', label: '✎ Custom (cargar stats a mano)' }];
       const item = E.items.find((i) => i.id === eq.id);
       const body = h('div');
       if (eq.id === 'custom') {
@@ -578,16 +578,16 @@
         body.appendChild(customLines(eq.lines, () => update()));
       } else if (item) {
         const ctr = h('div', { class: 'row', style: { marginBottom: '.4rem' } });
-        if (item.enh || item.grades) {
+        if (item.enh || item.grades || item.enhRanges) {
           const max = item.enhMax ?? 15, min = item.enhMin ?? 0;
           ctr.appendChild(field(item.enhMin ? 'Nivel' : 'Mejora', select(Array.from({ length: max - min + 1 }, (_, i) => ({ value: i + min, label: (item.enhMin ? 'Lv' : '+') + (i + min) })), eq.enh ?? max, (v) => set((b) => { b.equip[slot.key].enh = Number(v); b.equip[slot.key].vals = {}; }, true))));
         }
         if (item.variants) ctr.appendChild(field('Opción', select(Object.keys(item.variants).map((k) => ({ value: k, label: k === 'SCD' ? 'SCD (Skill Damage +10%)' : k === 'AT' ? 'AT +700' : 'HP +1500' })), eq.variant || item.defVariant, (v) => set((b) => { b.equip[slot.key].variant = v; b.equip[slot.key].vals = {}; }, true))));
-        if (item.grades) ctr.appendChild(field('Grado', select(item.gradeList, eq.grade || item.gradeList[item.gradeList.length - 1], (v) => set((b) => { b.equip[slot.key].grade = v; b.equip[slot.key].vals = {}; }, true))));
+        if (item.grades && !item.fixedGrade) ctr.appendChild(field('Grado', select(item.gradeList, eq.grade || item.gradeList[item.gradeList.length - 1], (v) => set((b) => { b.equip[slot.key].grade = v; b.equip[slot.key].vals = {}; }, true))));
         if (item.familyLock) ctr.appendChild(field('Familia', select([{ value: '', label: '(la del digimon)' }, ...Object.entries(DMO.families).map(([k, v]) => ({ value: k, label: v }))], eq.family || '', (v) => set((b) => { b.equip[slot.key].family = v; }, true))));
         body.appendChild(ctr);
         const st = Calc.equipStats(item, eq);
-        body.appendChild(statEditor(st, (k, v) => { build.equip[slot.key].vals = Object.assign({}, build.equip[slot.key].vals, { [k]: v }); update(); }, { ranges: item.range }));
+        body.appendChild(statEditor(st, (k, v) => { build.equip[slot.key].vals = Object.assign({}, build.equip[slot.key].vals, { [k]: v }); update(); }, { ranges: Calc.equipRanges(item, eq), showAll: E.clothingSlots.includes(slot.key) }));
         if (item.tamerStat) body.appendChild(h('div', { class: 'muted', style: { fontSize: '.8rem' } }, 'Stats de Tamer: llegan al digimon × FS% (ver Extras).'));
         if (item.note) body.appendChild(h('div', { class: 'muted', style: { fontSize: '.8rem' } }, item.note));
         body.appendChild(h('div', { class: 'muted', style: { fontSize: '.75rem' } }, (item.set ? 'Set: ' + (E.sets[item.set]?.name || item.set) + ' · ' : '') + 'Fuente: ' + (item.src || '?')));
@@ -648,21 +648,24 @@
       const c = build.chips[i] = build.chips[i] || { type: 'family', rank: 18, stat: 'AT', fam: dg?.fam?.[0] || 'VB' };
       const val = Calc.chipValue(c);
       const chipOptions = Calc.chipOptions(c);
-      chipRows.push(h('div', { class: 'mod-line' },
-        h('span', { class: 'muted' }, `#${i + 1}`),
-        select(C.types.map((t) => ({ value: t.key, label: t.label })), c.type, (v) => set((b) => { b.chips[i].type = v; delete b.chips[i].v; delete b.chips[i].subV; if (v === 'double' && !b.chips[i].sub) b.chips[i].sub = 'HT'; }, true)),
-        c.type !== 'all' ? select(C.families.map((f) => ({ value: f, label: f })), c.fam, (v) => set((b) => { b.chips[i].fam = v; }, true), { title: 'Familia' }) : null,
-        select(Array.from({ length: 20 }, (_, r) => ({ value: r + 1, label: 'R' + (r + 1) + (C.estRanks.includes(r + 1) ? '*' : '') })), c.rank, (v) => set((b) => { b.chips[i].rank = Number(v); delete b.chips[i].v; delete b.chips[i].subV; }, true)),
-        select(C.stats, c.stat, (v) => set((b) => { b.chips[i].stat = v; delete b.chips[i].v; }, true)),
-        c.type === 'double' ? select(C.stats, c.sub, (v) => set((b) => { b.chips[i].sub = v; delete b.chips[i].subV; }, true), { title: 'Sub stat' }) : null,
-        c.type === 'double' ? field(`Principal (máx ${fmt(chipOptions.main.max, 2)})`, num(chipOptions.main.value, (v) => set((b) => {
-          const chip = b.chips[i]; chip.v = v; chip.v = Calc.chipOptions(chip).main.value;
-        }, true), { min: 0, max: chipOptions.main.max, step: chipOptions.main.step, style: { width: '6rem' } })) : null,
-        chipOptions.sub ? field(`Secundario (máx ${fmt(chipOptions.sub.max, 2)})`, num(chipOptions.sub.value, (v) => set((b) => {
-          const chip = b.chips[i]; chip.subV = v; chip.subV = Calc.chipOptions(chip).sub.value;
-        }, true), { min: 0, max: chipOptions.sub.max, step: chipOptions.sub.step, style: { width: '6rem' } })) : null,
+      chipRows.push(h('div', { class: 'chipset' },
+        h('div', { class: 'chipset-number muted' }, `Chipset #${i + 1}`),
+        h('div', { class: 'chipset-controls' },
+          h('div', { class: 'chipset-type' }, field('Tipo', select(C.types.map((t) => ({ value: t.key, label: t.label })), c.type, (v) => set((b) => { b.chips[i].type = v; delete b.chips[i].v; delete b.chips[i].subV; if (v === 'double' && !b.chips[i].sub) b.chips[i].sub = 'HT'; }, true)))),
+          c.type !== 'all' ? field('Familia', select(C.families.map((f) => ({ value: f, label: f })), c.fam, (v) => set((b) => { b.chips[i].fam = v; }, true), { title: 'Familia' })) : null,
+          field('Rango', select(Array.from({ length: 20 }, (_, r) => ({ value: r + 1, label: 'R' + (r + 1) + (C.estRanks.includes(r + 1) ? '*' : '') })), c.rank, (v) => set((b) => { b.chips[i].rank = Number(v); delete b.chips[i].v; delete b.chips[i].subV; }, true))),
+          field('Stat principal', select(C.stats, c.stat, (v) => set((b) => { b.chips[i].stat = v; delete b.chips[i].v; }, true))),
+          c.type === 'double' ? field(`Principal (máx ${fmt(chipOptions.main.max, 2)})`, num(chipOptions.main.value, (v) => set((b) => {
+            const chip = b.chips[i]; chip.v = v; chip.v = Calc.chipOptions(chip).main.value;
+          }, true), { min: 0, max: chipOptions.main.max, step: chipOptions.main.step })) : null,
+          c.type === 'double' ? field('Stat secundario', select(C.stats, c.sub, (v) => set((b) => { b.chips[i].sub = v; delete b.chips[i].subV; }, true), { title: 'Sub stat' })) : null,
+          chipOptions.sub ? field(`Secundario (máx ${fmt(chipOptions.sub.max, 2)})`, num(chipOptions.sub.value, (v) => set((b) => {
+            const chip = b.chips[i]; chip.subV = v; chip.subV = Calc.chipOptions(chip).sub.value;
+          }, true), { min: 0, max: chipOptions.sub.max, step: chipOptions.sub.step })) : null,
+        ),
+        h('div', { class: 'chipset-footer' },
         c.type === 'double' ? h('button', { class: 'small', onclick: () => set((b) => { delete b.chips[i].v; delete b.chips[i].subV; }, true) }, 'Valores al máximo') : null,
-        h('small', { class: 'muted' }, Object.entries(val).map(([k, v]) => `${k} +${fmt(v, 2)}`).join(' / '))));
+        h('small', { class: 'muted' }, Object.entries(val).map(([k, v]) => `${k} +${fmt(v, 2)}`).join(' / ')))));
     }
     return h('div', null,
       h('h3', null, 'Digivice y Chipsets'),

@@ -34,17 +34,19 @@ window.DMO = window.DMO || {};
 
   // ───────── Sets Digimon Kaiser (MDG) — 3 sets con stats por pieza idénticos ─────────
   // Bandas de mejora (wiki sólo da extremos): se toma el máximo de la banda y el usuario puede ajustar.
+  const bands = (low, middle, high) => [...Array(5).fill(low), ...Array(5).fill(middle), ...Array(6).fill(high)];
+  const mdgNote = 'Rangos por banda de mejora de DMO Wiki; las terceras líneas desde +10 se suman al stat principal. Ajustá tus valores reales.';
   const mdgPieces = {
-    head: { name: 'Head', range: { CT: [5, 15], CD: [10, 40] }, note: 'CT expresado en rating 500-1500 (=5-15%). +3ra línea CT 5-10% a +10' },
-    fashion: { name: 'Fashion', range: { HT: [500, 2000], AT: [500, 1500] }, note: '3ra línea +10: HT 500-1500' },
-    top: { name: 'Top', range: { HP: [1000, 2500], DE: [200, 1000] }, note: '3ra línea +10: HP 1000-2000' },
-    bottom: { name: 'Bottom', range: { DS: [1000, 2500], SKP: [5, 30] }, note: '3ra línea +10: DS 1000-2000' },
-    gloves: { name: 'Gloves', range: { AT: [500, 2000], AS: [1, 3] }, note: '3ra línea +10: AT 300-700' },
-    shoes: { name: 'Shoes', range: { MS: [20, 30] }, note: 'EXP 1000-2000% a +10' },
+    head: { name: 'Head', enhRanges: { CT: bands([5, 6.25], [6.5, 7.5], [12.75, 25]), CD: bands([0, 0], [10, 14], [15, 40]) } },
+    fashion: { name: 'Fashion', enhRanges: { HT: bands([500, 750], [800, 1000], [1600, 3500]), AT: bands([0, 0], [500, 700], [750, 1500]) } },
+    top: { name: 'Top', enhRanges: { HP: bands([1000, 1250], [1300, 1500], [2600, 4500]), DE: bands([0, 0], [200, 300], [350, 1000]) } },
+    bottom: { name: 'Bottom', enhRanges: { DS: bands([1000, 1250], [1300, 1500], [2600, 4500]), SKP: bands([0, 0], [5, 9], [12, 30]) } },
+    gloves: { name: 'Gloves', enhRanges: { AT: bands([500, 750], [800, 1000], [1400, 2700]), AS: bands([0, 0], [1, 1], [2, 3]) } },
+    shoes: { name: 'Shoes', enhRanges: { MS: bands([20, 20], [20, 25], [25, 30]), EXP: bands([0, 0], [0, 0], [1000, 2000]) }, note: 'Afinidad +30 desde +5.' },
   };
   for (const [setId, who] of [['mdg_yolei', 'Yolei'], ['mdg_tk', 'T.K.'], ['mdg_davis', 'Davis']]) {
     for (const [slot, p] of Object.entries(mdgPieces)) {
-      add({ id: `${setId}_${slot}`, slot, name: `${who} ${p.name} (Kaiser)`, range: p.range, set: setId, src: 'WIKI', note: p.note });
+      add({ id: `${setId}_${slot}`, slot, name: `${who} ${p.name} (Kaiser)`, enhRanges: p.enhRanges, enhMax: 15, set: setId, src: 'WIKI Clothing', note: mdgNote + (p.note ? ' ' + p.note : '') });
     }
   }
 
@@ -329,5 +331,19 @@ window.DMO = window.DMO || {};
     { name: 'Hiro / Kiyoshiro / Ruli / Kaiser (genérico)', p: [], est: true, skill: 'Pasivas no confirmadas — usar "Modificadores custom"' },
   ];
 
-  DMO.equipment = { slots, items, sets, digivices, chipsets, tamers };
+  const clothingSlots = ['head', 'fashion', 'top', 'bottom', 'gloves', 'shoes'];
+  // El catalogo conserva las piezas antiguas para poder leer builds guardados.
+  for (const item of items) {
+    if (item.set === 'fhb') {
+      item.fixedGrade = 'Ultimate';
+      item.gradeList = ['Ultimate'];
+      item.name += ' [Ultimate]';
+    }
+    if (clothingSlots.includes(item.slot)) {
+      const agumon = item.name.startsWith('Agumon ');
+      item.hidden = !(item.set?.startsWith('mdg_') || item.set?.startsWith('fr_') || item.set === 'fhb' || agumon);
+      if (agumon) item.name = item.name.replace(' [Evento]', '');
+    }
+  }
+  DMO.equipment = { slots, items, sets, digivices, chipsets, tamers, clothingSlots };
 })();

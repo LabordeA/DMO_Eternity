@@ -90,19 +90,27 @@
     return DMO.clones.cumulative(key, c.lv || 0);
   };
 
+  // Rangos por mejora cuando la fuente publica bandas, sin interpolar valores.
+  Calc.equipRanges = function (item, eq) {
+    if (!item.enhRanges) return item.range;
+    const level = Math.max(0, Math.min(eq.enh ?? item.enhMax, item.enhMax));
+    return Object.fromEntries(Object.entries(item.enhRanges).map(([k, ranges]) => [k, ranges[level]]));
+  };
+
   // Resuelve los stats de un ítem de equipo según mejora/grado y overrides del usuario
   Calc.equipStats = function (item, eq) {
     const out = {};
     if (!item) return out;
     if (item.stats) Object.assign(out, item.stats);
     if (item.variants) Object.assign(out, item.variants[eq.variant || item.defVariant] || {});
-    if (item.range) for (const [k, [, max]] of Object.entries(item.range)) out[k] = max;
+    const ranges = Calc.equipRanges(item, eq);
+    if (ranges) for (const [k, [, max]] of Object.entries(ranges)) out[k] = max;
     if (item.enh) {
       const e = Math.max(0, Math.min(eq.enh ?? item.enhMax ?? 0, item.enhMax ?? 15));
       for (const [k, arr] of Object.entries(item.enh)) out[k] = arr[Math.min(e, arr.length - 1)];
     }
     if (item.grades) {
-      const g = eq.grade || item.gradeList[item.gradeList.length - 1];
+      const g = item.fixedGrade || eq.grade || item.gradeList[item.gradeList.length - 1];
       const e = Math.max(0, Math.min(eq.enh ?? item.enhMax, item.enhMax));
       for (const [k, byG] of Object.entries(item.grades)) out[k] = (byG[g] || [])[e] ?? 0;
     }
@@ -238,7 +246,7 @@
         else add(k, v, `${slot.label}: ${item.name}`);
       }
       if (item.set) {
-        const okGrade = !DMO.equipment.sets[item.set]?.requiresGrade || (eq.grade || 'Ultimate') === DMO.equipment.sets[item.set].requiresGrade;
+        const okGrade = !DMO.equipment.sets[item.set]?.requiresGrade || (item.fixedGrade || eq.grade || 'Ultimate') === DMO.equipment.sets[item.set].requiresGrade;
         if (okGrade) setCount[item.set] = (setCount[item.set] || 0) + 1;
       }
     }

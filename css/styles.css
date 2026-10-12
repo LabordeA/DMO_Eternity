@@ -233,3 +233,17 @@ details.menu[open] > summary { border-color: var(--accent2); }
 .seal-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .seal-inputs input { width: 100%; }
 @media (max-width: 400px) { .seal-inputs { grid-template-columns: 1fr; } }
+
+/* Chipsets: controles alineados y acciones centradas. */
+.chipset { min-width: 0; padding: .85rem 0; }
+.chipset + .chipset { border-top: 1px solid var(--line); }
+.chipset-number { text-align: center; font-size: .82rem; margin-bottom: .6rem; }
+.chipset-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: end; }
+.chipset-type { grid-column: span 2; min-width: 0; }
+.chipset-controls .field { min-width: 0; text-align: center; }
+.chipset-controls .field > span { min-height: 1.1rem; }
+.chipset-controls select, .chipset-controls input[type="number"] { width: 100%; min-width: 0; min-height: 2.4rem; text-align: center; }
+.chipset-footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .65rem; margin-top: .75rem; text-align: center; }
+.chipset-footer button { min-height: 2.4rem; padding: .35rem .75rem; }
+@media (max-width: 700px) { .chipset-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 400px) { .chipset-controls { grid-template-columns: minmax(0, 1fr); } .chipset-type { grid-column: auto; } }
