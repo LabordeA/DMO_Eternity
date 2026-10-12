@@ -228,6 +228,25 @@
       const s170 = Calc.baseStats(dg, 170, 140, build.digimon.type, null).base;
       const quick = h('div', { class: 'quick-stats' }, DMO.baseKeys.map((k) =>
         h('div', { class: 'stat' }, h('div', { class: 'k' }, h('span', null, k)), h('div', { class: 'v' }, fmtStat(k, s170[k])))));
+      const skillLevels = [10, 15, 20, 25];
+      const skillData = DMO.digimonSkills?.[dg.n];
+      const skills = skillData?.skills || [];
+      const skillsPanel = h('section', { class: 'digi-skills' },
+        h('h3', null, 'Habilidades'),
+        skills.length
+          ? h('div', { class: 'digi-skill-list' }, skills.map((skill, i) =>
+            h('div', { class: 'digi-skill' },
+              h('div', { class: 'digi-skill-title' },
+                h('span', { class: 'pill' }, `F${i + 1}`),
+                h('strong', null, skill.name),
+                skill.element ? h('small', { class: 'muted' }, skill.element) : null),
+              h('div', { class: 'digi-skill-levels' }, skillLevels.map((level) =>
+                h('div', { class: 'digi-skill-level' },
+                  h('small', null, `Lv. ${level}`),
+                  h('strong', null, skill.damage?.[level] != null ? fmt(skill.damage[level]) : '—')))))))
+          : h('p', { class: 'muted small' }, 'La fuente consultada no tiene datos de habilidades para esta forma.'),
+        h('p', { class: 'digi-skill-note' }, 'Daño por nivel según DMO Wiki; el daño final puede variar según el build.'),
+        skillData?.source ? h('a', { class: 'digi-skill-source', href: skillData.source, target: '_blank', rel: 'noopener' }, 'Ver tabla en DMO Wiki ↗') : null);
       const ov = build.digimon.baseOverride;
       const statsRows = DMO.baseKeys.map((k, i) => {
         const wikiV = dg.w ? dg.w.s[i] : null;
@@ -245,6 +264,7 @@
           `${dg.f} · ${dg.a} · ${DMO.elemLabels[dg.e] || dg.e}`,
           dg.note || dg.est ? h('span', { class: 'pill est', title: dg.note || 'Tipo de atacante desconocido', style: { marginLeft: '.4rem' } }, 'algunos valores estimados') : null),
         quick,
+        skillsPanel,
         h('details', { class: 'more' }, h('summary', null, 'Más opciones (nivel, tamaño, línea evolutiva, editar stats)'),
           line.length ? h('div', { class: 'row' }, h('span', { class: 'muted' }, 'Línea:'), h('div', { class: 'form-chips' }, line)) : null,
           h('div', { class: 'row' },

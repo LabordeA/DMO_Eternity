@@ -35,6 +35,7 @@ Los builds se guardan en el navegador de cada persona (localStorage). "Compartir
 | `core.js` | Crecimiento por nivel, multiplicadores de etapa, atributos / elementos, servidores y fuentes |
 | `digimon.js` | 500 formas (dmowiki) |
 | `digimon_u.js` | 14 digimons U agregados desde las notas oficiales 2025-2026 (copiá una entrada para sumar uno nuevo) |
+| `digimon_skills.js` | Habilidades y daño en niveles 10, 15, 20 y 25 para los Digimon seleccionables, extraídos de sus tablas en [DMO Wiki](https://dmowiki.com) |
 | `seals.js` | Sellos |
 | `equipment.js` | Equipo, sets, costumes, digivices, chipsets y tamers |
 | `jewelry.js` | Accesorios |
@@ -42,6 +43,8 @@ Los builds se guardan en el navegador de cada persona (localStorage). "Compartir
 | `extras.js` | Decks, títulos y buffs |
 
 Si un valor no coincide con el juego, corregilo en estos archivos o usá en la app "Editar stats base a mano", los ítems "Custom" y los "Modificadores custom".
+
+La ficha de cada Digimon seleccionable muestra el daño de sus habilidades en los niveles 10, 15, 20 y 25, con un enlace a la tabla correspondiente de DMO Wiki. Los datos se guardan localmente para que la app siga funcionando sin conexión.
 
 ## Fiabilidad
 
